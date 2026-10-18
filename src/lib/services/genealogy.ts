@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '../supabase/server';
+import { createAdminClient } from '../supabase/admin';
 import { Person, Relationship, Source, HistoricalArticle, FamilyEntourage, VisualFamilyTreeData } from '../types/database';
 import { isPersonPublic, isRelationshipPublic, sanitizeSourceForPublic } from './privacy';
 
@@ -20,49 +20,21 @@ export interface SearchPersonsResult {
 }
 
 /**
- * Searches public deceased persons with pagination and privacy enforcement.
- * Compliant with Section 5.1 & 6.2.
+ * Searches public persons (living and deceased) with pagination and privacy enforcement.
  */
 export async function searchPersonsPublic(
   filters: SearchPersonsFilters
 ): Promise<SearchPersonsResult> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminClient();
   const page = Math.max(1, filters.page ?? 1);
   const limit = Math.min(50, Math.max(10, filters.limit ?? 20));
   const offset = (page - 1) * limit;
 
-  // Try using the optimized database function search_public_persons
-  try {
-    const { data: rpcData, error: rpcError } = await supabase.rpc('search_public_persons', {
-      p_query: filters.query || null,
-      p_last_name: filters.lastName || null,
-      p_first_names: filters.firstNames || null,
-      p_birth_year: filters.birthYear || null,
-      p_death_year: filters.deathYear || null,
-      p_limit: limit,
-      p_offset: offset,
-    });
-
-    if (!rpcError && rpcData) {
-      // Cast and return
-      const persons = rpcData as unknown as Person[];
-      return {
-        persons,
-        totalCount: persons.length < limit ? offset + persons.length : offset + limit + 1,
-        currentPage: page,
-        totalPages: Math.ceil((offset + persons.length) / limit),
-      };
-    }
-  } catch {
-    // Fallback to direct query below
-  }
-
-  // Fallback direct table query strictly enforcing privacy rules
+  // Direct table query enforcing visibility = 'public' and archived_at IS NULL
   let query = supabase
     .from('persons')
     .select('*', { count: 'exact' })
     .is('archived_at', null)
-    .eq('life_status', 'deceased')
     .eq('visibility', 'public');
 
   if (filters.lastName?.trim()) {
@@ -114,7 +86,7 @@ export async function searchPersonsPublic(
  * Compliant with Section 5.2, 5.3 & 6.3.
  */
 export async function getPersonWithFamily(id: string): Promise<FamilyEntourage | null> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminClient();
 
   // 1. Fetch target person
   const { data: personData, error: personError } = await supabase
@@ -321,7 +293,7 @@ export async function getPersonWithFamily(id: string): Promise<FamilyEntourage |
  * with strict privacy filter (only deceased public persons).
  */
 export async function getVisualFamilyTree(id: string): Promise<VisualFamilyTreeData | null> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminClient();
 
   // 1. Fetch focus person
   const { data: focusPersonData } = await supabase

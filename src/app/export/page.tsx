@@ -17,7 +17,6 @@ export default async function ExportPage() {
     .from('persons')
     .select('*', { count: 'exact', head: true })
     .is('archived_at', null)
-    .eq('life_status', 'deceased')
     .eq('visibility', 'public');
 
   // Count public sources

@@ -13,7 +13,6 @@ export async function GET() {
     .from('persons')
     .select('*')
     .is('archived_at', null)
-    .eq('life_status', 'deceased')
     .eq('visibility', 'public');
 
   if (personsError) {

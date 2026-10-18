@@ -77,7 +77,6 @@ export default async function FamilleArticlePage(props: PageProps) {
       .from('persons')
       .select('*')
       .ilike('last_name', article.family_name)
-      .eq('life_status', 'deceased')
       .eq('visibility', 'public')
       .is('archived_at', null)
       .order('birth_year', { ascending: true, nullsFirst: false })

@@ -71,7 +71,7 @@ function ProposerForm() {
       death_date_precision: deathDatePrecision,
       death_place: deathPlace.trim() || null,
       life_status: lifeStatus,
-      visibility: lifeStatus === 'deceased' ? 'public' : 'private',
+      visibility: 'public',
       profession: profession.trim() || null,
       biography: biography.trim() || null,
     };
@@ -344,8 +344,8 @@ function ProposerForm() {
                   className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
                 >
                   <option value="deceased">Décédé(e)</option>
-                  <option value="living">Vivant(e) (strictement privé)</option>
-                  <option value="unknown">Inconnu (privé par défaut)</option>
+                  <option value="living">Vivant(e)</option>
+                  <option value="unknown">Inconnu</option>
                 </select>
               </div>
 

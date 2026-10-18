@@ -95,7 +95,7 @@ describe('GEDCOM 5.5.1 and JSON Export Service', () => {
       death_year: null,
       death_place: null,
       life_status: 'living', // LIVING
-      visibility: 'public',
+      visibility: 'private',
       profession: 'Ingénieur',
       biography: 'Descendant contemporain vivant.',
       notes: null,
@@ -120,7 +120,7 @@ describe('GEDCOM 5.5.1 and JSON Export Service', () => {
       death_year: null,
       death_place: null,
       life_status: 'unknown', // UNKNOWN
-      visibility: 'public',
+      visibility: 'private',
       profession: null,
       biography: null,
       notes: null,

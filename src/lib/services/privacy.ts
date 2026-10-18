@@ -1,22 +1,21 @@
 import { Person, Relationship, Source, HistoricalArticle } from '../types/database';
 
 /**
- * Checks if a person can be made visible to the general public.
- * Rule (Section 6.2 & 14.2):
+ * Checks if a person can be made visible to the public.
+ * Rule:
  * - Must NOT be archived
- * - Must have life_status === 'deceased' (Never living, never unknown!)
- * - Must have visibility === 'public'
+ * - Must have visibility === 'public' (living and deceased persons are public when visibility is public)
  */
 export function isPersonPublic(person: Pick<Person, 'archived_at' | 'life_status' | 'visibility'>): boolean {
   if (person.archived_at !== null && person.archived_at !== undefined) {
     return false;
   }
-  return person.life_status === 'deceased' && person.visibility === 'public';
+  return person.visibility === 'public';
 }
 
 /**
  * Checks if a relationship between two persons is publicly visible.
- * Rule (Section 6.3 & 14.3):
+ * Rule:
  * - Must NOT be archived
  * - BOTH persons involved must satisfy isPersonPublic()
  */
@@ -33,7 +32,7 @@ export function isRelationshipPublic(
 
 /**
  * Sanitizes a source for public display by stripping out private notes.
- * Rule (Section 6.4):
+ * Rule:
  * - If is_public is false, returns null
  * - If is_public is true, returns source without private_notes
  */
@@ -47,7 +46,7 @@ export function sanitizeSourceForPublic(source: Source): Omit<Source, 'private_n
 
 /**
  * Verifies if an article is viewable by public visitor.
- * Rule (Section 8.2 & 11.3):
+ * Rule:
  * - Only 'published' status is visible. Drafts and archived are hidden.
  */
 export function isArticlePublic(article: Pick<HistoricalArticle, 'status'>): boolean {

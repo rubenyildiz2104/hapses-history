@@ -12,22 +12,22 @@ describe('Privacy and Visibility Rules (Specifications v1.0 Section 6)', () => {
     expect(isPersonPublic(person as Person)).toBe(true);
   });
 
-  it('strictly hides living person even if visibility is mistakenly marked public', () => {
+  it('allows living person with public visibility', () => {
     const livingPerson: Partial<Person> = {
       life_status: 'living',
-      visibility: 'public', // Must STILL be hidden
-      archived_at: null,
-    };
-    expect(isPersonPublic(livingPerson as Person)).toBe(false);
-  });
-
-  it('strictly hides person with unknown life status by default', () => {
-    const unknownPerson: Partial<Person> = {
-      life_status: 'unknown',
       visibility: 'public',
       archived_at: null,
     };
-    expect(isPersonPublic(unknownPerson as Person)).toBe(false);
+    expect(isPersonPublic(livingPerson as Person)).toBe(true);
+  });
+
+  it('strictly hides living person if visibility is marked private', () => {
+    const livingPerson: Partial<Person> = {
+      life_status: 'living',
+      visibility: 'private',
+      archived_at: null,
+    };
+    expect(isPersonPublic(livingPerson as Person)).toBe(false);
   });
 
   it('strictly hides archived person even if deceased and public', () => {
@@ -39,15 +39,17 @@ describe('Privacy and Visibility Rules (Specifications v1.0 Section 6)', () => {
     expect(isPersonPublic(archivedPerson as Person)).toBe(false);
   });
 
-  it('hides relationship if either related individual is living or private', () => {
+  it('hides relationship if either related individual is private', () => {
     const rel: Partial<Relationship> = { archived_at: null };
     const deceasedPublic: Partial<Person> = { life_status: 'deceased', visibility: 'public', archived_at: null };
+    const livingPublic: Partial<Person> = { life_status: 'living', visibility: 'public', archived_at: null };
     const livingPrivate: Partial<Person> = { life_status: 'living', visibility: 'private', archived_at: null };
 
-    // Between two deceased public persons -> visible
+    // Between two public persons -> visible
     expect(isRelationshipPublic(rel as Relationship, deceasedPublic as Person, deceasedPublic as Person)).toBe(true);
+    expect(isRelationshipPublic(rel as Relationship, deceasedPublic as Person, livingPublic as Person)).toBe(true);
 
-    // Between a deceased person and a living person -> MUST BE HIDDEN (Section 6.3)
+    // Between a public person and a private person -> MUST BE HIDDEN
     expect(isRelationshipPublic(rel as Relationship, deceasedPublic as Person, livingPrivate as Person)).toBe(false);
     expect(isRelationshipPublic(rel as Relationship, livingPrivate as Person, deceasedPublic as Person)).toBe(false);
   });

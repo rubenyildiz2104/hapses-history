@@ -50,7 +50,6 @@ export default async function EditArticlePage(props: PageProps) {
     .from('persons')
     .select('id, first_names, last_name, birth_year')
     .eq('visibility', 'public')
-    .eq('life_status', 'deceased')
     .is('archived_at', null)
     .order('last_name', { ascending: true })
     .limit(100);

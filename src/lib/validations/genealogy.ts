@@ -14,7 +14,7 @@ export const LifeStatusSchema = z.enum(['living', 'deceased', 'unknown']);
 
 export const VisibilityStatusSchema = z.enum(['public', 'private']);
 
-export const PersonSchema = z.object({
+export const PersonBaseSchema = z.object({
   first_names: z.string().min(1, 'Le ou les prénoms sont requis').max(150),
   last_name: z.string().min(1, 'Le nom de famille est requis').max(150),
   name_variants: z.array(z.string()).default([]),
@@ -36,7 +36,9 @@ export const PersonSchema = z.object({
   profession: z.string().max(200).nullable().optional(),
   biography: z.string().max(5000).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
-}).refine((data) => {
+});
+
+export const PersonSchema = PersonBaseSchema.refine((data) => {
   // If living, death date and death year MUST be null
   if (data.life_status === 'living') {
     return !data.death_date && !data.death_year;

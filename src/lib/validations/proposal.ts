@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PersonSchema, RelationshipSchema } from './genealogy';
+import { PersonSchema, PersonBaseSchema, RelationshipSchema } from './genealogy';
 
 export const ProposalTypeSchema = z.enum([
   'add_person',
@@ -42,9 +42,9 @@ export const SubmitProposalSchema = z.object({
         path: ['target_person_id'],
       });
     }
-    const res = PersonSchema.partial().safeParse(data.payload);
+    const res = PersonBaseSchema.partial().safeParse(data.payload);
     if (!res.success) {
-      res.error.issues.forEach((issue) => {
+      res.error.issues.forEach((issue: z.ZodIssue) => {
         ctx.addIssue({ ...issue, path: ['payload', ...issue.path] });
       });
     }

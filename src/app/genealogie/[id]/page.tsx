@@ -214,6 +214,27 @@ export default async function PersonPage({ params }: PersonPageProps) {
                   </p>
                 )}
 
+                {source.document_image_url && (
+                  <div className="pt-1">
+                    <a
+                      href={source.document_image_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block relative rounded-lg overflow-hidden border border-heritage-200 group bg-heritage-100/50"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={source.document_image_url}
+                        alt={source.title}
+                        className="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-heritage-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
+                        <span>Agrandir le document d&apos;archive ↗</span>
+                      </div>
+                    </a>
+                  </div>
+                )}
+
                 <div className="pt-2 flex items-center justify-between text-xs text-heritage-500">
                   <span>{source.rights_status ?? 'Domaine public'}</span>
                   {source.url && (

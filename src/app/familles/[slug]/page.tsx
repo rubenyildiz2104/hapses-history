@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { HistoricalArticle, Person, Source } from '@/lib/types/database';
 import { isPersonPublic, sanitizeSourceForPublic } from '@/lib/services/privacy';
 import { PersonCard } from '@/components/genealogy/PersonCard';
+import { RichContentRenderer } from '@/components/ui/RichContentRenderer';
 import { 
   Users, 
   BookOpen, 
@@ -172,14 +173,8 @@ export default async function FamilleArticlePage(props: PageProps) {
         )}
       </header>
 
-      {/* Main text content */}
-      <div className="prose prose-heritage max-w-none text-heritage-900 font-serif leading-relaxed text-base sm:text-lg space-y-6">
-        {article.content.split('\n\n').map((paragraph, idx) => (
-          <p key={idx} className="leading-relaxed">
-            {paragraph}
-          </p>
-        ))}
-      </div>
+      {/* Main text content with rich media rendering */}
+      <RichContentRenderer content={article.content} />
 
       {/* Linked Family Members */}
       {linkedPersons.length > 0 && (

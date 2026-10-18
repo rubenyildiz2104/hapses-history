@@ -8,11 +8,12 @@ import {
   ExternalLink, 
   Users, 
   BookOpen, 
-  Calendar,
-  Building,
-  CheckCircle2,
-  Tag
+  Calendar, 
+  Building, 
+  CheckCircle2, 
+  Tag 
 } from 'lucide-react';
+import { RichContentRenderer } from '@/components/ui/RichContentRenderer';
 import { Source, Person } from '@/lib/types/database';
 
 export interface EnrichedSource extends Omit<Source, 'private_notes'> {
@@ -188,9 +189,9 @@ export function SourcesExplorer({ initialSources }: { initialSources: EnrichedSo
                   </h3>
 
                   {source.description && (
-                    <p className="text-xs sm:text-sm text-heritage-700 font-serif leading-relaxed line-clamp-3">
-                      {source.description}
-                    </p>
+                    <div className="text-xs sm:text-sm text-heritage-700 font-serif leading-relaxed">
+                      <RichContentRenderer content={source.description} />
+                    </div>
                   )}
 
                   {source.document_image_url && (

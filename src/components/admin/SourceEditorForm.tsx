@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,8 +13,12 @@ import {
   FileText,
   Lock,
   Globe,
+  Eye,
+  Edit3,
 } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { RichTextPhotoInserter } from '@/components/ui/RichTextPhotoInserter';
+import { RichContentRenderer } from '@/components/ui/RichContentRenderer';
 import { upsertSourceAction, deleteSourceAction } from '@/app/actions/sources';
 import { Source, Person } from '@/lib/types/database';
 
@@ -45,12 +49,26 @@ export function SourceEditorForm({
   const [url, setUrl] = useState(initialSource?.url || '');
   const [documentImageUrl, setDocumentImageUrl] = useState(initialSource?.document_image_url || '');
   const [description, setDescription] = useState(initialSource?.description || '');
+  const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [privateNotes, setPrivateNotes] = useState(initialSource?.private_notes || '');
   const [isPublic, setIsPublic] = useState(initialSource ? initialSource.is_public : true);
   const [rightsStatus, setRightsStatus] = useState(initialSource?.rights_status || 'Domaine public');
 
   const [linkedPersonIds, setLinkedPersonIds] = useState<string[]>(initialLinkedPersonIds);
   const [personSearch, setPersonSearch] = useState('');
+
+  function handleInsertMarkdown(markdownText: string) {
+    if (descriptionRef.current) {
+      const textarea = descriptionRef.current;
+      const start = textarea.selectionStart ?? description.length;
+      const end = textarea.selectionEnd ?? description.length;
+      const nextContent = description.substring(0, start) + markdownText + description.substring(end);
+      setDescription(nextContent);
+    } else {
+      setDescription((prev) => prev + markdownText);
+    }
+  }
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -291,20 +309,71 @@ export function SourceEditorForm({
 
           {/* 2. Contenu & Transcription */}
           <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4 shadow-sm">
-            <h2 className="font-serif text-lg font-bold text-heritage-950">
-              Description et transcription publique
-            </h2>
-            <p className="text-xs text-heritage-600">
-              Détaillez le contenu de la source, sa transcription ou un résumé des informations qu&apos;elle apporte sur le village ou ses habitants.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="font-serif text-lg font-bold text-heritage-950">
+                  Description et transcription publique
+                </h2>
+                <p className="text-xs text-heritage-600">
+                  Détaillez le contenu de la source, sa transcription ou un résumé des informations qu&apos;elle apporte sur le village ou ses habitants.
+                </p>
+              </div>
 
-            <textarea
-              rows={8}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Texte de transcription, résumé de l'acte, contexte de collecte..."
-              className="w-full p-3.5 rounded-lg border border-heritage-300 text-sm focus:outline-none focus:ring-2 focus:ring-heritage-500 font-serif leading-relaxed"
+              {/* Edit / Preview Tabs */}
+              <div className="inline-flex rounded-lg bg-heritage-100 p-0.5 border border-heritage-200 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('edit')}
+                  className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                    editorMode === 'edit'
+                      ? 'bg-heritage-800 text-white shadow-xs'
+                      : 'text-heritage-700 hover:text-heritage-950'
+                  }`}
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>Rédiger</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('preview')}
+                  className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                    editorMode === 'preview'
+                      ? 'bg-heritage-800 text-white shadow-xs'
+                      : 'text-heritage-700 hover:text-heritage-950'
+                  }`}
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Aperçu en direct</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Photo Inserter Tool */}
+            <RichTextPhotoInserter
+              onInsertMarkdown={handleInsertMarkdown}
+              folder="sources"
             />
+
+            {editorMode === 'edit' ? (
+              <textarea
+                ref={descriptionRef}
+                rows={9}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Texte de transcription, résumé de l'acte, contexte de collecte... Utilisez le bouton ci-dessus pour insérer des photos ou fac-similés d'actes dans le texte."
+                className="w-full p-3.5 rounded-lg border border-heritage-300 text-sm focus:outline-none focus:ring-2 focus:ring-heritage-500 font-serif leading-relaxed"
+              />
+            ) : (
+              <div className="p-6 rounded-xl border border-heritage-200 bg-heritage-50/50 min-h-[220px]">
+                {description.trim() ? (
+                  <RichContentRenderer content={description} />
+                ) : (
+                  <p className="text-sm text-heritage-500 italic">
+                    Aucune description saisie pour le moment. Rédigez le texte dans l&apos;onglet &quot;Rédiger&quot;.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 3. Notes Privées Confidentielles */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -11,9 +11,13 @@ import {
   Users, 
   BookOpen, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Eye,
+  Edit3
 } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { RichTextPhotoInserter } from '@/components/ui/RichTextPhotoInserter';
+import { RichContentRenderer } from '@/components/ui/RichContentRenderer';
 import { upsertArticleAction, deleteArticleAction } from '@/app/actions/articles';
 import { HistoricalArticle, ArticleType, ArticleStatus, Person, Source } from '@/lib/types/database';
 
@@ -62,6 +66,8 @@ export function ArticleEditorForm({
   );
   const [summary, setSummary] = useState(initialArticle?.summary || '');
   const [content, setContent] = useState(initialArticle?.content || '');
+  const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
+  const contentRef = useRef<HTMLTextAreaElement>(null);
   const [status, setStatus] = useState<ArticleStatus>(initialArticle?.status || 'draft');
   const [featuredImageUrl, setFeaturedImageUrl] = useState(initialArticle?.featured_image_url || '');
   const [featuredImageCredit, setFeaturedImageCredit] = useState(initialArticle?.featured_image_credit || '');
@@ -75,6 +81,18 @@ export function ArticleEditorForm({
   function handleAutoSlug() {
     if (title.trim()) {
       setSlug(slugify(title.trim()));
+    }
+  }
+
+  function handleInsertMarkdown(markdownText: string) {
+    if (contentRef.current) {
+      const textarea = contentRef.current;
+      const start = textarea.selectionStart ?? content.length;
+      const end = textarea.selectionEnd ?? content.length;
+      const nextContent = content.substring(0, start) + markdownText + content.substring(end);
+      setContent(nextContent);
+    } else {
+      setContent((prev) => prev + markdownText);
     }
   }
 
@@ -316,19 +334,69 @@ export function ArticleEditorForm({
             </div>
 
             {/* Content */}
-            <div>
-              <label htmlFor="content" className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1.5">
-                Corps de l’article *
-              </label>
-              <textarea
-                id="content"
-                required
-                rows={14}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Rédigez le récit historique en séparant les paragraphes par des sauts de ligne..."
-                className="w-full p-3.5 rounded-lg border border-heritage-300 text-heritage-950 text-sm font-serif leading-relaxed placeholder-heritage-400 focus:outline-none focus:ring-2 focus:ring-heritage-600"
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label htmlFor="content" className="block text-xs font-semibold uppercase tracking-wider text-heritage-800">
+                  Corps de l’article *
+                </label>
+
+                {/* Edit / Preview Tabs */}
+                <div className="inline-flex rounded-lg bg-heritage-100 p-0.5 border border-heritage-200">
+                  <button
+                    type="button"
+                    onClick={() => setEditorMode('edit')}
+                    className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      editorMode === 'edit'
+                        ? 'bg-heritage-800 text-white shadow-xs'
+                        : 'text-heritage-700 hover:text-heritage-950'
+                    }`}
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>Rédiger</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditorMode('preview')}
+                    className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      editorMode === 'preview'
+                        ? 'bg-heritage-800 text-white shadow-xs'
+                        : 'text-heritage-700 hover:text-heritage-950'
+                    }`}
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>Aperçu en direct</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Photo Inserter Tool */}
+              <RichTextPhotoInserter
+                onInsertMarkdown={handleInsertMarkdown}
+                folder="articles"
               />
+
+              {editorMode === 'edit' ? (
+                <textarea
+                  id="content"
+                  ref={contentRef}
+                  required
+                  rows={15}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Rédigez le récit historique en séparant les paragraphes par des sauts de ligne. Utilisez le bouton ci-dessus pour insérer des photographies et documents anciens..."
+                  className="w-full p-3.5 rounded-lg border border-heritage-300 text-heritage-950 text-sm font-serif leading-relaxed placeholder-heritage-400 focus:outline-none focus:ring-2 focus:ring-heritage-600"
+                />
+              ) : (
+                <div className="p-6 rounded-xl border border-heritage-200 bg-heritage-50/50 min-h-[350px]">
+                  {content.trim() ? (
+                    <RichContentRenderer content={content} />
+                  ) : (
+                    <p className="text-sm text-heritage-500 italic">
+                      Aucun texte saisi pour le moment. Rédigez votre article dans l&apos;onglet &quot;Rédiger&quot;.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

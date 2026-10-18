@@ -19,68 +19,40 @@ const TABLES = [
 ];
 
 async function checkDatabase() {
-  console.log('--- VÉRIFICATION DE LA BASE DE DONNÉES SUPABASE ---');
-  console.log('Projet URL:', SUPABASE_URL);
+  console.log('--- VÉRIFICATION EN DIRECT DE LA BASE SUPABASE ---');
+  console.log('URL du projet:', SUPABASE_URL);
 
   const results = {};
-  let allOk = true;
+  let tablesMissing = 0;
 
   for (const table of TABLES) {
     try {
-      const { data, count, error } = await supabase
+      const { data, error, status } = await supabase
         .from(table)
-        .select('*', { count: 'exact', head: true });
+        .select('*')
+        .limit(1);
 
-      if (error) {
-        results[table] = { status: 'ERREUR / NON CRÉÉE', code: error.code, message: error.message };
-        allOk = false;
+      if (error || status === 404) {
+        results[table] = { existe: 'NON (Table absente)', message: error?.message || '404 Not Found' };
+        tablesMissing++;
       } else {
-        results[table] = { status: 'OK', count: count ?? 0 };
+        const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+        results[table] = { existe: 'OUI (Table créée)', lignes: count ?? data?.length ?? 0 };
       }
     } catch (err) {
-      results[table] = { status: 'EXCEPTION', message: err.message };
-      allOk = false;
+      results[table] = { existe: 'ERREUR', message: err.message };
+      tablesMissing++;
     }
   }
 
-  console.log('\nRésultat par table:');
+  console.log('\nÉtat des 10 tables:');
   console.table(results);
 
-  // Check RPC functions
-  console.log('\nVérification des fonctions RPC indispensables:');
-  try {
-    const { data: rpcSearch, error: rpcSearchError } = await supabase.rpc('search_public_persons', {
-      p_limit: 1
-    });
-    console.log('RPC search_public_persons:', rpcSearchError ? `ERREUR (${rpcSearchError.message})` : 'OK');
-  } catch (e) {
-    console.log('RPC search_public_persons: EXCEPTION', e.message);
-  }
-
-  try {
-    const { data: rpcDup, error: rpcDupError } = await supabase.rpc('find_potential_duplicates', {
-      p_first_names: 'Test',
-      p_last_name: 'Test'
-    });
-    console.log('RPC find_potential_duplicates:', rpcDupError ? `ERREUR (${rpcDupError.message})` : 'OK');
-  } catch (e) {
-    console.log('RPC find_potential_duplicates: EXCEPTION', e.message);
-  }
-
-  // Check demo data count if tables exist
-  if (results['persons']?.status === 'OK') {
-    const { data: demoPersons } = await supabase.from('persons').select('id, first_names, last_name, life_status, visibility');
-    console.log('\nPersonnes actuellement enregistrées:', demoPersons?.length || 0);
-    if (demoPersons && demoPersons.length > 0) {
-      console.log('Aperçu:');
-      demoPersons.forEach(p => console.log(` - ${p.first_names} ${p.last_name} [${p.life_status}, ${p.visibility}]`));
-    }
-  }
-
-  if (allOk) {
-    console.log('\n===> TOUTES LES 10 TABLES SONT PRÉSENTES ET FONCTIONNELLES ! <===');
+  if (tablesMissing === 0) {
+    console.log('\n===> TOUTES LES 10 TABLES SONT BIEN CRÉÉES DANS SUPABASE ! <===');
   } else {
-    console.log('\n===> ATTENTION : Les tables ne semblent pas encore avoir été créées sur ce projet Supabase. <===');
+    console.log(`\n===> ATTENTION : ${tablesMissing} / ${TABLES.length} tables ne sont pas encore créées dans Supabase. <===`);
+    console.log('Pour les créer, exécutez le script supabase/full_setup.sql dans le SQL Editor de Supabase.');
   }
 }
 

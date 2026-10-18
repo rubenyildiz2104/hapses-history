@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useState, useTransition, useEffect } from 'react';
 import { Search, RotateCcw } from 'lucide-react';
 
 interface SearchFormProps {
@@ -16,21 +16,25 @@ interface SearchFormProps {
 
 export function SearchForm({ initialValues }: SearchFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const [lastName, setLastName] = useState(
-    initialValues?.lastName ?? searchParams.get('lastName') ?? ''
-  );
-  const [firstNames, setFirstNames] = useState(
-    initialValues?.firstNames ?? searchParams.get('firstNames') ?? ''
-  );
-  const [birthYear, setBirthYear] = useState(
-    initialValues?.birthYear ?? searchParams.get('birthYear') ?? ''
-  );
-  const [deathYear, setDeathYear] = useState(
-    initialValues?.deathYear ?? searchParams.get('deathYear') ?? ''
-  );
+  const [lastName, setLastName] = useState(initialValues?.lastName ?? '');
+  const [firstNames, setFirstNames] = useState(initialValues?.firstNames ?? '');
+  const [birthYear, setBirthYear] = useState(initialValues?.birthYear ?? '');
+  const [deathYear, setDeathYear] = useState(initialValues?.deathYear ?? '');
+
+  // Keep form in sync when URL query updates from server
+  useEffect(() => {
+    setLastName(initialValues?.lastName ?? '');
+    setFirstNames(initialValues?.firstNames ?? '');
+    setBirthYear(initialValues?.birthYear ?? '');
+    setDeathYear(initialValues?.deathYear ?? '');
+  }, [
+    initialValues?.lastName,
+    initialValues?.firstNames,
+    initialValues?.birthYear,
+    initialValues?.deathYear,
+  ]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

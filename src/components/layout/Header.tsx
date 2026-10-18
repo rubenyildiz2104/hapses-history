@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { BookOpen, Users, Landmark, FileText, Info, Menu, X, User, PlusCircle, Shield } from 'lucide-react';
+import { BookOpen, Users, Landmark, Info, Menu, X, User, PlusCircle, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const supabase = createClient();
 
     // Check initial user
@@ -103,7 +105,7 @@ export function Header() {
               <span>Contribuer</span>
             </Link>
 
-            {user ? (
+            {mounted && user ? (
               <div className="flex items-center space-x-2">
                 {isAdmin && (
                   <Link
@@ -176,7 +178,7 @@ export function Header() {
               <span>Proposer une fiche généalogique</span>
             </Link>
 
-            {user ? (
+            {mounted && user ? (
               <>
                 <Link
                   href="/compte/propositions"

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { searchPersonsPublic, SearchPersonsFilters } from '@/lib/services/genealogy';
 import { SearchForm } from '@/components/genealogy/SearchForm';
 import { PersonCard } from '@/components/genealogy/PersonCard';
@@ -63,7 +64,9 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
       </div>
 
       {/* Search Form */}
-      <SearchForm initialValues={params} />
+      <Suspense fallback={<div className="bg-white p-6 rounded-xl border border-heritage-200 shadow-sm animate-pulse h-28" />}>
+        <SearchForm initialValues={params} />
+      </Suspense>
 
       {/* Results Section */}
       <section className="space-y-6" aria-labelledby="results-heading">

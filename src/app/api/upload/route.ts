@@ -10,6 +10,16 @@ const ALLOWED_MIME_TYPES = [
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+const DEFAULT_SUPABASE_URL = 'https://octtjcjpsporndodwjmb.supabase.co';
+const DEFAULT_SERVICE_ROLE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jdHRqY2pwc3Bvcm5kb2R3am1iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjMxOTAyMywiZXhwIjoyMTA3ODk1MDIzfQ.XSimS5EuSzkoUG9Red_UNUyShPAll8_lna8RMeuTbWI';
+
+function cleanEnv(val: string | undefined, fallback: string): string {
+  if (!val) return fallback;
+  const cleaned = val.trim().replace(/^["']|["']$/g, '');
+  return cleaned || fallback;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate user from session cookies
@@ -69,8 +79,14 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabaseUrl = cleanEnv(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
+      DEFAULT_SUPABASE_URL
+    );
+    const serviceKey = cleanEnv(
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      DEFAULT_SERVICE_ROLE_KEY
+    );
     const uploadEndpoint = `${supabaseUrl}/storage/v1/object/archives/${filePath}`;
 
     const uploadRes = await fetch(uploadEndpoint, {

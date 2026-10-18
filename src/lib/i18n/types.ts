@@ -2,6 +2,7 @@ export type Locale = 'fr' | 'en';
 
 export const LOCALES: Locale[] = ['fr', 'en'];
 export const DEFAULT_LOCALE: Locale = 'fr';
+export const LOCALE_COOKIE_NAME = 'habses_locale';
 
 export function isValidLocale(locale: string): locale is Locale {
   return LOCALES.includes(locale as Locale);
@@ -299,6 +300,19 @@ export interface Dictionary {
     sec4Title: string;
     sec4P1: string;
     sec4P2: string;
+  };
+  terms: {
+    badge: string;
+    title: string;
+    subtitle: string;
+    sec1Title: string;
+    sec1P: string;
+    sec2Title: string;
+    sec2P: string;
+    sec3Title: string;
+    sec3P: string;
+    sec4Title: string;
+    sec4P: string;
   };
   footer: {
     desc: string;

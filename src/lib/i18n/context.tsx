@@ -2,9 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Locale, Dictionary, DEFAULT_LOCALE, isValidLocale } from './types';
+import { Locale, Dictionary, DEFAULT_LOCALE, isValidLocale, LOCALE_COOKIE_NAME } from './types';
 import { getDictionary } from './index';
-import { setLocaleAction } from '@/app/actions/locale';
 
 interface LanguageContextType {
   locale: Locale;
@@ -27,10 +26,17 @@ export function LanguageProvider({
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const [isPending, startTransition] = useTransition();
 
+  // Synchronize state if initialLocale changes on server navigation
+  useEffect(() => {
+    if (initialLocale && initialLocale !== locale) {
+      setLocaleState(initialLocale);
+    }
+  }, [initialLocale, locale]);
+
   // Read cookie on mount if available
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      const match = document.cookie.match(/(?:^|;\s*)habses_locale=([^;]+)/);
+      const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${LOCALE_COOKIE_NAME}=([^;]+)`));
       if (match && isValidLocale(match[1]) && match[1] !== locale) {
         setLocaleState(match[1] as Locale);
       }
@@ -43,14 +49,22 @@ export function LanguageProvider({
     if (newLocale === locale) return;
     setLocaleState(newLocale);
 
-    // Set client cookie
+    // 1. Set client cookie immediately
     if (typeof document !== 'undefined') {
-      document.cookie = `habses_locale=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+      document.cookie = `${LOCALE_COOKIE_NAME}=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
     }
 
+    // 2. Persist to server via lightweight API route and refresh server components
     startTransition(async () => {
-      // Set server cookie and refresh active server components
-      await setLocaleAction(newLocale);
+      try {
+        await fetch('/api/locale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locale: newLocale }),
+        });
+      } catch {
+        // Silently continue
+      }
       router.refresh();
     });
   }

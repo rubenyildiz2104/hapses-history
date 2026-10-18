@@ -218,8 +218,15 @@ CREATE INDEX IF NOT EXISTS idx_persons_first_names ON public.persons (first_name
 CREATE INDEX IF NOT EXISTS idx_persons_visibility_life ON public.persons (visibility, life_status, archived_at);
 CREATE INDEX IF NOT EXISTS idx_persons_birth_year ON public.persons (birth_year);
 CREATE INDEX IF NOT EXISTS idx_persons_death_year ON public.persons (death_year);
+
+-- Immutable unaccent wrapper function for GIN indexing
+CREATE OR REPLACE FUNCTION public.immutable_unaccent(text)
+RETURNS text AS $$
+    SELECT public.unaccent('unaccent', $1);
+$$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT;
+
 CREATE INDEX IF NOT EXISTS idx_persons_trgm_search ON public.persons USING gin (
-    (lower(unaccent(last_name || ' ' || first_names))) gin_trgm_ops
+    (lower(public.immutable_unaccent(last_name || ' ' || first_names))) gin_trgm_ops
 );
 
 -- 5. RELATIONSHIPS TABLE

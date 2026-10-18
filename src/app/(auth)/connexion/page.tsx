@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { signInAction } from '@/app/actions/auth';
 import { LogIn, AlertCircle } from 'lucide-react';
 
-export default function ConnexionPage() {
-  const [error, setError] = useState<string | null>(null);
+function ConnexionForm() {
+  const searchParams = useSearchParams();
+  const initialError = searchParams.get('error');
+  const [error, setError] = useState<string | null>(initialError ? decodeURIComponent(initialError) : null);
   const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(formData: FormData) {
@@ -97,5 +100,13 @@ export default function ConnexionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConnexionPage() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto py-20 text-center text-xs text-heritage-600">Chargement...</div>}>
+      <ConnexionForm />
+    </Suspense>
   );
 }

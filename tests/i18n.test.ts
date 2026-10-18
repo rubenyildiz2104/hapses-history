@@ -75,4 +75,12 @@ describe('i18n Infrastructure', () => {
     expect(formatLifespan({}, {}, 'living', 'fr')).toBe('vivant(e)');
     expect(formatLifespan({}, {}, 'living', 'en')).toBe('living');
   });
+
+  it('correctly parses locale cookies without unexpected matches', () => {
+    const testCookie = 'other=val; habses_locale=en; session=123';
+    const match = testCookie.match(/(?:^|;\s*)habses_locale=([^;]+)/);
+    expect(match).not.toBeNull();
+    expect(match?.[1]).toBe('en');
+    expect(isValidLocale(match![1])).toBe(true);
+  });
 });

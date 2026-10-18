@@ -357,3 +357,5 @@ BEGIN
     RAISE EXCEPTION 'Flux de modération inattendu.';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.review_proposal_transaction TO authenticated;

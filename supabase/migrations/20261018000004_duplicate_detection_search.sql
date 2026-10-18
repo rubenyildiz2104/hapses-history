@@ -158,3 +158,6 @@ BEGIN
     LIMIT 10;
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.search_public_persons TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.find_potential_duplicates TO authenticated;

@@ -305,3 +305,24 @@ SELECT
     created_at
 FROM public.sources
 WHERE is_public = TRUE;
+
+-- 14. EXPLICIT GRANTS FOR SUPABASE POSTGREST ROLES (anon, authenticated)
+-- Note: Row Level Security (RLS) filters the rows, but GRANTs are required for PostgREST schema cache
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+GRANT SELECT ON TABLE public.profiles TO anon, authenticated;
+GRANT UPDATE (display_name) ON TABLE public.profiles TO authenticated;
+
+GRANT SELECT ON TABLE public.persons TO anon, authenticated;
+GRANT SELECT ON TABLE public.relationships TO anon, authenticated;
+GRANT SELECT ON TABLE public.sources TO anon, authenticated;
+GRANT SELECT ON TABLE public.public_sources TO anon, authenticated;
+GRANT SELECT ON TABLE public.person_sources TO anon, authenticated;
+
+GRANT SELECT, INSERT ON TABLE public.proposals TO authenticated;
+GRANT SELECT ON TABLE public.historical_articles TO anon, authenticated;
+GRANT SELECT ON TABLE public.historical_article_links TO anon, authenticated;
+GRANT SELECT ON TABLE public.historical_article_sources TO anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.is_admin TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.is_person_public TO anon, authenticated;

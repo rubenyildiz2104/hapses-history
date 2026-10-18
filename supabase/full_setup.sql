@@ -780,6 +780,7 @@ GRANT SELECT ON TABLE public.public_sources TO anon, authenticated;
 GRANT SELECT ON TABLE public.person_sources TO anon, authenticated;
 
 GRANT SELECT, INSERT ON TABLE public.proposals TO authenticated;
+GRANT SELECT ON TABLE public.audit_logs TO authenticated;
 GRANT SELECT ON TABLE public.historical_articles TO anon, authenticated;
 GRANT SELECT ON TABLE public.historical_article_links TO anon, authenticated;
 GRANT SELECT ON TABLE public.historical_article_sources TO anon, authenticated;

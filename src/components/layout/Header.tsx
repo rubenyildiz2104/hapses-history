@@ -1,18 +1,61 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { BookOpen, Users, Landmark, FileText, Info, Menu, X, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Users, Landmark, FileText, Info, Menu, X, User, PlusCircle, Shield } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Check initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+          .then(({ data }) => {
+            setIsAdmin(data?.role === 'admin');
+          });
+      }
+    });
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser.id)
+          .single()
+          .then(({ data }) => {
+            setIsAdmin(data?.role === 'admin');
+          });
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const navLinks = [
     { href: '/', label: 'Accueil' },
     { href: '/genealogie', label: 'Généalogie', icon: Users },
     { href: '/histoire', label: 'Histoire du village', icon: Landmark },
     { href: '/familles', label: 'Histoires de familles', icon: BookOpen },
-    { href: '/sources', label: 'Sources & Archives', icon: FileText },
     { href: '/a-propos', label: 'À propos', icon: Info },
   ];
 
@@ -50,15 +93,45 @@ export function Header() {
             ))}
           </nav>
 
-          {/* User Account Action */}
+          {/* User Account Actions */}
           <div className="hidden md:flex items-center space-x-3">
             <Link
-              href="/connexion"
-              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full border border-heritage-300 text-heritage-800 hover:bg-heritage-100 hover:border-heritage-400 transition-colors"
+              href="/proposer"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-heritage-800 text-heritage-50 hover:bg-heritage-900 transition-colors shadow-sm"
             >
-              <User className="w-4 h-4 text-heritage-600" />
-              <span>Connexion</span>
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Contribuer</span>
             </Link>
+
+            {user ? (
+              <div className="flex items-center space-x-2">
+                {isAdmin && (
+                  <Link
+                    href="/admin/moderation"
+                    className="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold rounded-md border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 transition-colors"
+                  >
+                    <Shield className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Admin</span>
+                  </Link>
+                )}
+
+                <Link
+                  href="/compte/propositions"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium rounded-full border border-heritage-300 text-heritage-800 hover:bg-heritage-100 hover:border-heritage-400 transition-colors"
+                >
+                  <User className="w-3.5 h-3.5 text-heritage-600" />
+                  <span>Mon compte</span>
+                </Link>
+              </div>
+            ) : (
+              <Link
+                href="/connexion"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-medium rounded-full border border-heritage-300 text-heritage-800 hover:bg-heritage-100 hover:border-heritage-400 transition-colors"
+              >
+                <User className="w-3.5 h-3.5 text-heritage-600" />
+                <span>Connexion</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile hamburger menu */}
@@ -92,15 +165,48 @@ export function Header() {
               </Link>
             );
           })}
-          <div className="pt-3 border-t border-heritage-200 mt-2">
+
+          <div className="pt-3 border-t border-heritage-200 mt-2 space-y-2">
             <Link
-              href="/connexion"
+              href="/proposer"
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md bg-heritage-800 text-heritage-50 font-medium text-sm hover:bg-heritage-900 transition-colors"
             >
-              <User className="w-4 h-4" />
-              <span>Espace Membre / Connexion</span>
+              <PlusCircle className="w-4 h-4" />
+              <span>Proposer une fiche généalogique</span>
             </Link>
+
+            {user ? (
+              <>
+                <Link
+                  href="/compte/propositions"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md border border-heritage-300 text-heritage-800 font-medium text-sm hover:bg-heritage-100 transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Mon compte & mes propositions</span>
+                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin/moderation"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md bg-amber-100 text-amber-900 font-medium text-sm hover:bg-amber-200 transition-colors"
+                  >
+                    <Shield className="w-4 h-4 text-amber-700" />
+                    <span>Espace d’administration</span>
+                  </Link>
+                )}
+              </>
+            ) : (
+              <Link
+                href="/connexion"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md border border-heritage-300 text-heritage-800 font-medium text-sm hover:bg-heritage-100 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                <span>Connexion</span>
+              </Link>
+            )}
           </div>
         </div>
       )}

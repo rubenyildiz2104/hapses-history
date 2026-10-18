@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import { Person } from '@/lib/types/database';
 import { formatLifespan } from '@/lib/services/dates';
-import { User, Briefcase, MapPin, ArrowRight } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/context';
+import { Briefcase, MapPin, ArrowRight } from 'lucide-react';
 
 interface PersonCardProps {
   person: Person;
@@ -9,10 +12,13 @@ interface PersonCardProps {
 }
 
 export function PersonCard({ person, relationshipLabel }: PersonCardProps) {
+  const { locale } = useTranslation();
+
   const lifespan = formatLifespan(
     { date: person.birth_date, year: person.birth_year, precision: person.birth_date_precision },
     { date: person.death_date, year: person.death_year, precision: person.death_date_precision },
-    person.life_status
+    person.life_status,
+    locale
   );
 
   return (

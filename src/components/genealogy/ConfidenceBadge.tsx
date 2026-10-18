@@ -1,5 +1,8 @@
+'use client';
+
 import { DatePrecision } from '@/lib/types/database';
 import { CheckCircle2, HelpCircle, Clock, AlertTriangle } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/context';
 
 interface ConfidenceBadgeProps {
   precision?: DatePrecision;
@@ -8,11 +11,13 @@ interface ConfidenceBadgeProps {
 }
 
 export function ConfidenceBadge({ precision, isHypothesis, label }: ConfidenceBadgeProps) {
+  const { t } = useTranslation();
+
   if (isHypothesis) {
     return (
       <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 border border-amber-300">
         <AlertTriangle className="w-3 h-3 text-amber-700" />
-        <span>{label ?? 'Hypothèse à confirmer'}</span>
+        <span>{label ?? t('genealogy.hypothesis')}</span>
       </span>
     );
   }
@@ -26,7 +31,7 @@ export function ConfidenceBadge({ precision, isHypothesis, label }: ConfidenceBa
       return (
         <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-          <span>Fait documenté</span>
+          <span>{t('genealogy.documentedFact')}</span>
         </span>
       );
 
@@ -34,7 +39,7 @@ export function ConfidenceBadge({ precision, isHypothesis, label }: ConfidenceBa
       return (
         <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
           <Clock className="w-3 h-3 text-amber-600" />
-          <span>Date approximative</span>
+          <span>{t('genealogy.approximateDate')}</span>
         </span>
       );
 
@@ -43,14 +48,14 @@ export function ConfidenceBadge({ precision, isHypothesis, label }: ConfidenceBa
       return (
         <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-700 border border-stone-300">
           <Clock className="w-3 h-3 text-stone-500" />
-          <span>Fourchette chronologique</span>
+          <span>{t('genealogy.dateRange')}</span>
         </span>
       );
 
     case 'year_only':
       return (
         <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-700 border border-stone-300">
-          <span>Année attestée</span>
+          <span>{t('genealogy.attestedYear')}</span>
         </span>
       );
 
@@ -59,7 +64,7 @@ export function ConfidenceBadge({ precision, isHypothesis, label }: ConfidenceBa
       return (
         <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-600 border border-stone-200">
           <HelpCircle className="w-3 h-3 text-stone-400" />
-          <span>Date non documentée</span>
+          <span>{t('genealogy.undocumentedDate')}</span>
         </span>
       );
   }

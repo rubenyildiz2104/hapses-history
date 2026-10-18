@@ -4,12 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Calendar, ArrowRight, Landmark } from 'lucide-react';
 import { HistoricalArticle } from '@/lib/types/database';
-import { VillageTimeline, HISTORICAL_ERAS } from './VillageTimeline';
+import { VillageTimeline, getHistoricalEras } from './VillageTimeline';
+import { useTranslation } from '@/lib/i18n/context';
 
 export function HistoireExplorer({ initialArticles }: { initialArticles: HistoricalArticle[] }) {
+  const { t, locale } = useTranslation();
   const [activeEraId, setActiveEraId] = useState<string | null>(null);
 
-  const activeEra = HISTORICAL_ERAS.find((e) => e.id === activeEraId);
+  const eras = getHistoricalEras(locale);
+  const activeEra = eras.find((e) => e.id === activeEraId);
 
   const filteredArticles = activeEraId && activeEra
     ? initialArticles.filter((art) => {
@@ -33,14 +36,14 @@ export function HistoireExplorer({ initialArticles }: { initialArticles: Histori
           <div>
             <h2 id="articles-heading" className="font-serif text-2xl font-bold text-heritage-900">
               {activeEra ? (
-                <span>Récits : {activeEra.name} ({filteredArticles.length})</span>
+                <span>{activeEra.name} ({filteredArticles.length})</span>
               ) : (
-                <span>Tous les récits historiques ({initialArticles.length})</span>
+                <span>{t('history.showAllNarratives')} ({initialArticles.length})</span>
               )}
             </h2>
             {activeEra && (
               <p className="text-xs text-heritage-600 mt-0.5">
-                Période {activeEra.periodText}
+                {t('history.period')} {activeEra.periodText}
               </p>
             )}
           </div>
@@ -51,7 +54,7 @@ export function HistoireExplorer({ initialArticles }: { initialArticles: Histori
               onClick={() => setActiveEraId(null)}
               className="text-xs font-semibold text-heritage-700 hover:text-heritage-950 underline mt-2 sm:mt-0"
             >
-              Afficher tous les récits
+              {t('history.showAllNarratives')}
             </button>
           )}
         </div>
@@ -60,10 +63,10 @@ export function HistoireExplorer({ initialArticles }: { initialArticles: Histori
           <div className="p-10 rounded-2xl border border-dashed border-heritage-300 bg-white text-center space-y-3">
             <Landmark className="w-8 h-8 text-heritage-400 mx-auto" />
             <h3 className="font-serif text-lg font-bold text-heritage-900">
-              Recherches historiques en cours pour cette période
+              {t('history.researchInProgress')}
             </h3>
             <p className="text-sm text-heritage-600 max-w-md mx-auto">
-              Les récits et dépouillements d’archives pour cette époque sont en cours de rédaction.
+              {t('history.researchInProgressDesc')}
             </p>
             <div className="pt-2">
               <button
@@ -71,7 +74,7 @@ export function HistoireExplorer({ initialArticles }: { initialArticles: Histori
                 onClick={() => setActiveEraId(null)}
                 className="text-xs font-semibold text-heritage-800 hover:underline"
               >
-                Voir les autres périodes documentées
+                {t('history.seeOtherEras')}
               </button>
             </div>
           </div>
@@ -88,7 +91,7 @@ export function HistoireExplorer({ initialArticles }: { initialArticles: Histori
                     {article.period_description ||
                       (article.period_start && article.period_end
                         ? `${article.period_start} – ${article.period_end}`
-                        : 'Période en cours d’étude')}
+                        : t('history.underStudy'))}
                   </span>
                 </div>
 
@@ -109,7 +112,7 @@ export function HistoireExplorer({ initialArticles }: { initialArticles: Histori
                     href={`/histoire/${article.slug}`}
                     className="inline-flex items-center space-x-1.5 text-xs font-semibold uppercase tracking-wider text-heritage-800 hover:text-heritage-950 hover:underline"
                   >
-                    <span>Lire l’article complet</span>
+                    <span>{t('history.readArticle')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition, useEffect } from 'react';
 import { Search, RotateCcw } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/context';
 
 interface SearchFormProps {
   initialValues?: {
@@ -15,6 +16,7 @@ interface SearchFormProps {
 }
 
 export function SearchForm({ initialValues }: SearchFormProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -69,7 +71,7 @@ export function SearchForm({ initialValues }: SearchFormProps) {
         {/* Nom */}
         <div>
           <label htmlFor="lastName" className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1.5">
-            Nom de famille
+            {t('genealogy.lastName')}
           </label>
           <input
             type="text"
@@ -84,7 +86,7 @@ export function SearchForm({ initialValues }: SearchFormProps) {
         {/* Prénom */}
         <div>
           <label htmlFor="firstNames" className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1.5">
-            Prénom(s)
+            {t('genealogy.firstName')}
           </label>
           <input
             type="text"
@@ -99,7 +101,7 @@ export function SearchForm({ initialValues }: SearchFormProps) {
         {/* Année de naissance */}
         <div>
           <label htmlFor="birthYear" className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1.5">
-            Année de naissance
+            {t('genealogy.birthYear')}
           </label>
           <input
             type="number"
@@ -116,7 +118,7 @@ export function SearchForm({ initialValues }: SearchFormProps) {
         {/* Année de décès */}
         <div>
           <label htmlFor="deathYear" className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1.5">
-            Année de décès
+            {t('genealogy.death')}
           </label>
           <input
             type="number"
@@ -133,7 +135,7 @@ export function SearchForm({ initialValues }: SearchFormProps) {
 
       <div className="mt-5 pt-4 border-t border-heritage-100 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p className="text-xs text-heritage-600">
-          Recherche insensible à la casse et tolérante aux variantes orthographiques.
+          {t('genealogy.subtitle')}
         </p>
 
         <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -143,7 +145,7 @@ export function SearchForm({ initialValues }: SearchFormProps) {
             className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-lg border border-heritage-300 text-heritage-700 text-sm font-medium hover:bg-heritage-50 transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>Réinitialiser</span>
+            <span>{t('common.reset')}</span>
           </button>
 
           <button
@@ -152,7 +154,7 @@ export function SearchForm({ initialValues }: SearchFormProps) {
             className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-2 px-5 py-2 rounded-lg bg-heritage-800 text-heritage-50 text-sm font-semibold hover:bg-heritage-900 focus:ring-2 focus:ring-offset-2 focus:ring-heritage-800 transition-colors disabled:opacity-50"
           >
             <Search className="w-4 h-4" />
-            <span>{isPending ? 'Recherche en cours...' : 'Rechercher'}</span>
+            <span>{isPending ? t('common.loading') : t('common.search')}</span>
           </button>
         </div>
       </div>

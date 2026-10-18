@@ -2,7 +2,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { Source, Person } from '@/lib/types/database';
 import { isPersonPublic, sanitizeSourceForPublic } from '@/lib/services/privacy';
 import { SourcesExplorer, EnrichedSource } from '@/components/sources/SourcesExplorer';
-import { FileText, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import { getServerDictionary } from '@/lib/i18n/server';
 
 export const metadata = {
   title: 'Sources & Archives | Habses Histoire & Familles',
@@ -10,6 +11,7 @@ export const metadata = {
 };
 
 export default async function SourcesPage() {
+  const { t } = await getServerDictionary();
   const supabase = await createServerSupabaseClient();
 
   // Fetch all public sources
@@ -57,20 +59,19 @@ export default async function SourcesPage() {
       {/* Header */}
       <div className="max-w-3xl space-y-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-          Archives & Traçabilité
+          {t('sources.pageBadge')}
         </span>
         <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-heritage-950">
-          Sources & Registres d’archives
+          {t('sources.title')}
         </h1>
         <p className="text-heritage-700 text-sm sm:text-base leading-relaxed font-serif">
-          Consultez les documents historiques officiels ayant permis d’établir les filiations et récits du village :
-          registres de baptême, recensements, actes communaux et témoignages vérifiés.
+          {t('sources.subtitle')}
         </p>
 
         <div className="flex items-center space-x-2 text-xs text-heritage-600 pt-1">
-          <ShieldCheck className="w-4 h-4 text-emerald-700" />
+          <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
           <span>
-            Chaque lien de parenté et événement historique repose sur une source vérifiée ou signalée avec son degré de certitude.
+            {t('sources.badgeDesc')}
           </span>
         </div>
       </div>

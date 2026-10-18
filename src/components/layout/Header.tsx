@@ -4,8 +4,11 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { BookOpen, Users, Landmark, Info, Menu, X, User, PlusCircle, Shield, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useTranslation } from '@/lib/i18n/context';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 export function Header() {
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
@@ -54,12 +57,12 @@ export function Header() {
   }, []);
 
   const navLinks = [
-    { href: '/', label: 'Accueil' },
-    { href: '/genealogie', label: 'Généalogie', icon: Users },
-    { href: '/histoire', label: 'Histoire du village', icon: Landmark },
-    { href: '/familles', label: 'Histoires de familles', icon: BookOpen },
-    { href: '/sources', label: 'Sources & Archives', icon: FileText },
-    { href: '/a-propos', label: 'À propos', icon: Info },
+    { href: '/', label: t('nav.home') },
+    { href: '/genealogie', label: t('nav.genealogy'), icon: Users },
+    { href: '/histoire', label: t('nav.villageHistory'), icon: Landmark },
+    { href: '/familles', label: t('nav.familyStories'), icon: BookOpen },
+    { href: '/sources', label: t('nav.sources'), icon: FileText },
+    { href: '/a-propos', label: t('nav.about'), icon: Info },
   ];
 
   return (
@@ -77,7 +80,7 @@ export function Header() {
                   Habses
                 </span>
                 <span className="text-xs uppercase tracking-wider text-heritage-600 font-medium">
-                  Histoire & Familles
+                  {t('common.appTagline')}
                 </span>
               </div>
             </Link>
@@ -96,14 +99,16 @@ export function Header() {
             ))}
           </nav>
 
-          {/* User Account Actions */}
+          {/* User Account Actions & Language Switcher */}
           <div className="hidden md:flex items-center space-x-3">
+            <LanguageSwitcher />
+
             <Link
               href="/proposer"
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-heritage-800 text-heritage-50 hover:bg-heritage-900 transition-colors shadow-sm"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Contribuer</span>
+              <span>{t('nav.propose')}</span>
             </Link>
 
             {mounted && user ? (
@@ -114,7 +119,7 @@ export function Header() {
                     className="inline-flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold rounded-md border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 transition-colors"
                   >
                     <Shield className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Admin</span>
+                    <span>{t('nav.admin')}</span>
                   </Link>
                 )}
 
@@ -123,7 +128,7 @@ export function Header() {
                   className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium rounded-full border border-heritage-300 text-heritage-800 hover:bg-heritage-100 hover:border-heritage-400 transition-colors"
                 >
                   <User className="w-3.5 h-3.5 text-heritage-600" />
-                  <span>Mon compte</span>
+                  <span>{t('nav.myProposals')}</span>
                 </Link>
               </div>
             ) : (
@@ -132,7 +137,7 @@ export function Header() {
                 className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-medium rounded-full border border-heritage-300 text-heritage-800 hover:bg-heritage-100 hover:border-heritage-400 transition-colors"
               >
                 <User className="w-3.5 h-3.5 text-heritage-600" />
-                <span>Connexion</span>
+                <span>{t('nav.signIn')}</span>
               </Link>
             )}
           </div>
@@ -153,21 +158,31 @@ export function Header() {
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-heritage-200 bg-heritage-50 px-4 pt-2 pb-4 space-y-1">
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center space-x-3 px-3 py-2.5 rounded-md text-base font-medium text-heritage-800 hover:bg-heritage-100"
-              >
-                {Icon && <Icon className="w-5 h-5 text-heritage-600" />}
-                <span>{link.label}</span>
-              </Link>
-            );
-          })}
+        <div className="md:hidden border-b border-heritage-200 bg-heritage-50 px-4 pt-3 pb-4 space-y-2">
+          {/* Mobile Language Switcher */}
+          <div className="flex items-center justify-between pb-2 border-b border-heritage-200">
+            <span className="text-xs uppercase font-semibold text-heritage-600 tracking-wider">
+              Langue / Language :
+            </span>
+            <LanguageSwitcher />
+          </div>
+
+          <div className="space-y-1 pt-1">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center space-x-3 px-3 py-2.5 rounded-md text-base font-medium text-heritage-800 hover:bg-heritage-100"
+                >
+                  {Icon && <Icon className="w-5 h-5 text-heritage-600" />}
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+          </div>
 
           <div className="pt-3 border-t border-heritage-200 mt-2 space-y-2">
             <Link
@@ -176,7 +191,7 @@ export function Header() {
               className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md bg-heritage-800 text-heritage-50 font-medium text-sm hover:bg-heritage-900 transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Proposer une fiche généalogique</span>
+              <span>{t('nav.propose')}</span>
             </Link>
 
             {mounted && user ? (
@@ -187,7 +202,7 @@ export function Header() {
                   className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md border border-heritage-300 text-heritage-800 font-medium text-sm hover:bg-heritage-100 transition-colors"
                 >
                   <User className="w-4 h-4" />
-                  <span>Mon compte & mes propositions</span>
+                  <span>{t('nav.myProposals')}</span>
                 </Link>
                 {isAdmin && (
                   <Link
@@ -196,7 +211,7 @@ export function Header() {
                     className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md bg-amber-100 text-amber-900 font-medium text-sm hover:bg-amber-200 transition-colors"
                   >
                     <Shield className="w-4 h-4 text-amber-700" />
-                    <span>Espace d’administration</span>
+                    <span>{t('nav.admin')}</span>
                   </Link>
                 )}
               </>
@@ -207,7 +222,7 @@ export function Header() {
                 className="flex items-center justify-center space-x-2 w-full py-2.5 px-4 rounded-md border border-heritage-300 text-heritage-800 font-medium text-sm hover:bg-heritage-100 transition-colors"
               >
                 <User className="w-4 h-4" />
-                <span>Connexion</span>
+                <span>{t('nav.signIn')}</span>
               </Link>
             )}
           </div>

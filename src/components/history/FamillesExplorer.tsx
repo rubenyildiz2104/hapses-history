@@ -4,8 +4,10 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Users, Search, ArrowRight, BookOpen, ExternalLink } from 'lucide-react';
 import { HistoricalArticle } from '@/lib/types/database';
+import { useTranslation } from '@/lib/i18n/context';
 
 export function FamillesExplorer({ initialArticles }: { initialArticles: HistoricalArticle[] }) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
 
@@ -54,14 +56,14 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher une famille (ex: Dupont)..."
+              placeholder={t('family.searchPlaceholder')}
               className="w-full pl-9 pr-4 py-2 rounded-lg border border-heritage-300 text-sm placeholder-heritage-400 text-heritage-950 focus:outline-none focus:ring-2 focus:ring-heritage-600 bg-heritage-50/50"
             />
           </div>
 
           <div className="flex items-center space-x-2 text-xs text-heritage-600">
             <span>
-              {filteredArticles.length} famille{filteredArticles.length > 1 ? 's' : ''} documentée{filteredArticles.length > 1 ? 's' : ''}
+              {t('family.familiesCount', { count: filteredArticles.length })}
             </span>
             {(searchQuery || selectedLetter) && (
               <button
@@ -72,7 +74,7 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
                 }}
                 className="font-semibold text-heritage-800 hover:underline ml-2"
               >
-                Réinitialiser les filtres
+                {t('family.resetFilters')}
               </button>
             )}
           </div>
@@ -82,7 +84,7 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
         {availableLetters.length > 1 && (
           <div className="pt-3 border-t border-heritage-100 flex flex-wrap items-center gap-1.5 text-xs">
             <span className="font-semibold text-heritage-600 mr-1 uppercase tracking-wider text-[11px]">
-              Index alphabétique :
+              {t('family.alphabetIndex')}
             </span>
             <button
               type="button"
@@ -93,7 +95,7 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
                   : 'bg-heritage-100 text-heritage-700 hover:bg-heritage-200'
               }`}
             >
-              Tous
+              {t('family.allFamilies')}
             </button>
             {availableLetters.map((letter) => (
               <button
@@ -118,10 +120,10 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
         <div className="p-10 rounded-2xl border border-dashed border-heritage-300 bg-white text-center space-y-3">
           <BookOpen className="w-8 h-8 text-heritage-400 mx-auto" />
           <h3 className="font-serif text-lg font-bold text-heritage-900">
-            Aucune monographie trouvée pour ces critères
+            {t('family.noMonographs')}
           </h3>
           <p className="text-sm text-heritage-600 max-w-md mx-auto">
-            Essayez d’élargir vos termes de recherche ou parcourez l’ensemble des familles répertoriées.
+            {t('family.noMonographsDesc')}
           </p>
         </div>
       ) : (
@@ -135,11 +137,11 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
                 <div className="flex items-center justify-between text-xs">
                   <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded bg-heritage-100 text-heritage-800 font-semibold uppercase tracking-wider">
                     <Users className="w-3.5 h-3.5" />
-                    <span>Famille {article.family_name || 'du village'}</span>
+                    <span>{t('family.familyBadge', { name: article.family_name || 'Habses' })}</span>
                   </span>
 
                   <span className="text-heritage-500">
-                    {article.period_description || 'Lignée documentée'}
+                    {article.period_description || t('family.documentedLineage')}
                   </span>
                 </div>
 
@@ -162,7 +164,7 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
                     href={`/genealogie?lastName=${encodeURIComponent(article.family_name)}`}
                     className="inline-flex items-center space-x-1 font-semibold text-heritage-700 hover:text-heritage-950 hover:underline"
                   >
-                    <span>Voir les personnes dans l’arbre</span>
+                    <span>{t('family.viewPersonsInTree')}</span>
                     <ExternalLink className="w-3 h-3" />
                   </Link>
                 )}
@@ -171,7 +173,7 @@ export function FamillesExplorer({ initialArticles }: { initialArticles: Histori
                   href={`/familles/${article.slug}`}
                   className="inline-flex items-center space-x-1.5 font-semibold uppercase tracking-wider text-heritage-800 hover:text-heritage-950 hover:underline ml-auto"
                 >
-                  <span>Lire l’histoire</span>
+                  <span>{t('family.readStory')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

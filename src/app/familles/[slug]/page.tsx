@@ -5,9 +5,9 @@ import { HistoricalArticle, Person, Source } from '@/lib/types/database';
 import { isPersonPublic, sanitizeSourceForPublic } from '@/lib/services/privacy';
 import { PersonCard } from '@/components/genealogy/PersonCard';
 import { RichContentRenderer } from '@/components/ui/RichContentRenderer';
+import { getServerDictionary } from '@/lib/i18n/server';
 import { 
   Users, 
-  BookOpen, 
   Calendar, 
   ArrowLeft, 
   FileText, 
@@ -38,6 +38,7 @@ export async function generateMetadata(props: PageProps) {
 
 export default async function FamilleArticlePage(props: PageProps) {
   const { slug } = await props.params;
+  const { t } = await getServerDictionary();
   const supabase = await createServerSupabaseClient();
 
   // Query article
@@ -118,11 +119,11 @@ export default async function FamilleArticlePage(props: PageProps) {
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center space-x-2 text-xs text-heritage-600 font-medium">
         <Link href="/" className="hover:text-heritage-950 transition-colors">
-          Accueil
+          {t('history.breadcrumbHome')}
         </Link>
         <span>/</span>
         <Link href="/familles" className="hover:text-heritage-950 transition-colors">
-          Histoires de familles
+          {t('family.breadcrumbFamilies')}
         </Link>
         <span>/</span>
         <span className="text-heritage-900 truncate max-w-xs">{article.title}</span>
@@ -134,7 +135,7 @@ export default async function FamilleArticlePage(props: PageProps) {
           {article.family_name && (
             <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded bg-heritage-800 text-heritage-50 font-semibold uppercase tracking-wider">
               <Users className="w-3.5 h-3.5" />
-              <span>Famille {article.family_name}</span>
+              <span>{t('family.familyBadge', { name: article.family_name })}</span>
             </span>
           )}
 
@@ -182,11 +183,11 @@ export default async function FamilleArticlePage(props: PageProps) {
           <div className="flex items-center space-x-2">
             <Users className="w-5 h-5 text-heritage-700" />
             <h2 id="family-members-heading" className="font-serif text-xl font-bold text-heritage-950">
-              Membres de cette lignée répertoriés ({linkedPersons.length})
+              {t('family.familyMembersTitle', { count: linkedPersons.length })}
             </h2>
           </div>
           <p className="text-xs text-heritage-600">
-            Fiches généalogiques publiques des ancêtres et descendants documentés :
+            {t('family.familyMembersSubtitle')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             {linkedPersons.map((person) => (
@@ -202,7 +203,7 @@ export default async function FamilleArticlePage(props: PageProps) {
           <div className="flex items-center space-x-2">
             <FileText className="w-5 h-5 text-heritage-700" />
             <h2 id="sources-heading" className="font-serif text-xl font-bold text-heritage-950">
-              Sources & Archives de cette famille ({linkedSources.length})
+              {t('family.familySourcesTitle', { count: linkedSources.length })}
             </h2>
           </div>
           <div className="space-y-3">
@@ -222,10 +223,10 @@ export default async function FamilleArticlePage(props: PageProps) {
                   )}
                 </div>
                 {source.author_or_organization && (
-                  <p>Auteur / Organisme : {source.author_or_organization}</p>
+                  <p>{t('sources.authorOrg')} {source.author_or_organization}</p>
                 )}
                 {source.archive_reference && (
-                  <p>Cote d’archive : <span className="font-mono">{source.archive_reference}</span></p>
+                  <p>{t('sources.refCote')} <span className="font-mono">{source.archive_reference}</span></p>
                 )}
                 {citationDetails && (
                   <p className="italic text-heritage-600 font-serif">« {citationDetails} »</p>
@@ -237,7 +238,7 @@ export default async function FamilleArticlePage(props: PageProps) {
                     rel="noreferrer"
                     className="inline-flex items-center space-x-1 text-heritage-900 underline font-medium hover:text-black pt-1"
                   >
-                    <span>Consulter le document source</span>
+                    <span>{t('sources.consultRegister')}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
@@ -254,7 +255,7 @@ export default async function FamilleArticlePage(props: PageProps) {
           className="inline-flex items-center space-x-2 text-sm font-semibold text-heritage-800 hover:text-heritage-950 hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour aux histoires de familles</span>
+          <span>{t('genealogy.backToFamilies')}</span>
         </Link>
       </div>
     </article>

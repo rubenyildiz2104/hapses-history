@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Landmark, Clock, ChevronRight } from 'lucide-react';
+import { Clock, ChevronRight } from 'lucide-react';
 import { HistoricalArticle } from '@/lib/types/database';
+import { useTranslation } from '@/lib/i18n/context';
+import { Locale } from '@/lib/i18n/types';
 
 export interface TimelineEra {
   id: string;
@@ -12,50 +14,102 @@ export interface TimelineEra {
   description: string;
 }
 
-export const HISTORICAL_ERAS: TimelineEra[] = [
-  {
-    id: 'antiquity',
-    name: 'Antiquité & Origines',
-    periodText: 'Jusqu’au IVe siècle',
-    yearRange: [500, 400],
-    description: 'Premières traces d’habitat rupestre, grottes et implantation araméenne antique.',
-  },
-  {
-    id: 'monastic',
-    name: 'Essor chrétien & Monastères',
-    periodText: 'IVe – XIVe siècle',
-    yearRange: [400, 1400],
-    description: 'Édification des sanctuaires Mor Hadbshabo et Mor Osyo, rayonnement spirituel du Tur Abdin.',
-  },
-  {
-    id: 'ottoman',
-    name: 'Époque Ottomane & Agriculture',
-    periodText: 'XVe – XVIIIe siècle',
-    yearRange: [1401, 1800],
-    description: 'Organisation agraire, cultures en terrasses et mentions dans les registres fiscaux ottomans.',
-  },
-  {
-    id: 'nineteenth',
-    name: 'XIXe Siècle & Artisanat',
-    periodText: '1801 – 1900',
-    yearRange: [1801, 1900],
-    description: 'Développement des forges communales, métiers du bois, tissage et premiers recensements modernes.',
-  },
-  {
-    id: 'twentieth',
-    name: 'Épreuves du XXe siècle & Sayfo',
-    periodText: '1901 – 1970',
-    yearRange: [1901, 1970],
-    description: 'Les tragiques événements de 1915, la résilience communautaire et les reconstructions d’après-guerre.',
-  },
-  {
-    id: 'diaspora',
-    name: 'Diaspora & Mémoire vivante',
-    periodText: '1970 – Aujourd’hui',
-    yearRange: [1971, 2030],
-    description: 'Émigration en Europe, sauvegarde généalogique et transmission du patrimoine immatériel.',
-  },
-];
+const HISTORICAL_ERAS_DATA: Record<Locale, TimelineEra[]> = {
+  fr: [
+    {
+      id: 'antiquity',
+      name: 'Antiquité & Origines',
+      periodText: 'Jusqu’au IVe siècle',
+      yearRange: [500, 400],
+      description: 'Premières traces d’habitat rupestre, grottes et implantation araméenne antique.',
+    },
+    {
+      id: 'monastic',
+      name: 'Essor chrétien & Monastères',
+      periodText: 'IVe – XIVe siècle',
+      yearRange: [400, 1400],
+      description: 'Édification des sanctuaires Mor Hadbshabo et Mor Osyo, rayonnement spirituel du Tur Abdin.',
+    },
+    {
+      id: 'ottoman',
+      name: 'Époque Ottomane & Agriculture',
+      periodText: 'XVe – XVIIIe siècle',
+      yearRange: [1401, 1800],
+      description: 'Organisation agraire, cultures en terrasses et mentions dans les registres fiscaux ottomans.',
+    },
+    {
+      id: 'nineteenth',
+      name: 'XIXe Siècle & Artisanat',
+      periodText: '1801 – 1900',
+      yearRange: [1801, 1900],
+      description: 'Développement des forges communales, métiers du bois, tissage et premiers recensements modernes.',
+    },
+    {
+      id: 'twentieth',
+      name: 'Épreuves du XXe siècle & Sayfo',
+      periodText: '1901 – 1970',
+      yearRange: [1901, 1970],
+      description: 'Les tragiques événements de 1915, la résilience communautaire et les reconstructions d’après-guerre.',
+    },
+    {
+      id: 'diaspora',
+      name: 'Diaspora & Mémoire vivante',
+      periodText: '1970 – Aujourd’hui',
+      yearRange: [1971, 2030],
+      description: 'Émigration en Europe, sauvegarde généalogique et transmission du patrimoine immatériel.',
+    },
+  ],
+  en: [
+    {
+      id: 'antiquity',
+      name: 'Antiquity & Origins',
+      periodText: 'Up to 4th century',
+      yearRange: [500, 400],
+      description: 'First cave dwellings, rock-cut shelters and ancient Aramaic settlements.',
+    },
+    {
+      id: 'monastic',
+      name: 'Christian Rise & Monasteries',
+      periodText: '4th – 14th century',
+      yearRange: [400, 1400],
+      description: 'Founding of Mor Hadbshabo and Mor Osyo sanctuaries, spiritual influence across Tur Abdin.',
+    },
+    {
+      id: 'ottoman',
+      name: 'Ottoman Era & Agriculture',
+      periodText: '15th – 18th century',
+      yearRange: [1401, 1800],
+      description: 'Terraced farming, agrarian community and mentions in Ottoman tax defters.',
+    },
+    {
+      id: 'nineteenth',
+      name: '19th Century & Crafts',
+      periodText: '1801 – 1900',
+      yearRange: [1801, 1900],
+      description: 'Communal blacksmiths, woodworking, weaving, and early modern censuses.',
+    },
+    {
+      id: 'twentieth',
+      name: '20th Century Trials & Sayfo',
+      periodText: '1901 – 1970',
+      yearRange: [1901, 1970],
+      description: 'The tragic events of 1915, community resilience, and post-war rebuilding.',
+    },
+    {
+      id: 'diaspora',
+      name: 'Diaspora & Living Memory',
+      periodText: '1970 – Present',
+      yearRange: [1971, 2030],
+      description: 'Emigration to Europe, genealogical preservation, and oral heritage transmission.',
+    },
+  ],
+};
+
+export function getHistoricalEras(locale: Locale): TimelineEra[] {
+  return HISTORICAL_ERAS_DATA[locale] || HISTORICAL_ERAS_DATA.fr;
+}
+
+export const HISTORICAL_ERAS: TimelineEra[] = HISTORICAL_ERAS_DATA.fr;
 
 interface VillageTimelineProps {
   articles: HistoricalArticle[];
@@ -68,7 +122,10 @@ export function VillageTimeline({
   selectedEraId,
   onSelectEra,
 }: VillageTimelineProps) {
+  const { t, locale } = useTranslation();
   const [activeEra, setActiveEra] = useState<string | null>(selectedEraId || null);
+
+  const eras = getHistoricalEras(locale);
 
   function handleEraClick(eraId: string) {
     const next = activeEra === eraId ? null : eraId;
@@ -84,10 +141,10 @@ export function VillageTimeline({
         <div>
           <span className="text-xs uppercase tracking-wider text-heritage-600 font-semibold flex items-center space-x-1.5">
             <Clock className="w-3.5 h-3.5" />
-            <span>Repères temporels</span>
+            <span>{t('history.timelineSubtitle')}</span>
           </span>
           <h2 className="font-serif text-xl sm:text-2xl font-bold text-heritage-950 mt-0.5">
-            Frise chronologique du village
+            {t('history.timelineTitle')}
           </h2>
         </div>
 
@@ -97,14 +154,14 @@ export function VillageTimeline({
             onClick={() => handleEraClick(activeEra)}
             className="text-xs font-semibold text-heritage-700 hover:text-heritage-950 underline self-start sm:self-auto"
           >
-            Réinitialiser le filtre de période
+            {t('history.resetPeriodFilter')}
           </button>
         )}
       </div>
 
       {/* Timeline track */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {HISTORICAL_ERAS.map((era) => {
+        {eras.map((era) => {
           const isSelected = activeEra === era.id;
 
           // Count matching articles
@@ -146,10 +203,10 @@ export function VillageTimeline({
                 isSelected ? 'border-heritage-700 text-heritage-300' : 'border-heritage-100 text-heritage-500'
               }`}>
                 <span>
-                  {matchingArticles.length} récit{matchingArticles.length > 1 ? 's' : ''} associé{matchingArticles.length > 1 ? 's' : ''}
+                  {t('history.associatedNarratives', { count: matchingArticles.length })}
                 </span>
                 <span className="flex items-center space-x-1">
-                  <span>{isSelected ? 'Sélectionné' : 'Filtrer'}</span>
+                  <span>{isSelected ? t('history.selectedAction') : t('history.filterAction')}</span>
                   <ChevronRight className="w-3 h-3" />
                 </span>
               </div>

@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Search, Landmark, BookOpen, Users, ShieldCheck, ArrowRight, Compass } from 'lucide-react';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getServerDictionary } from '@/lib/i18n/server';
 import { HistoricalArticle } from '@/lib/types/database';
 
 export default async function HomePage() {
+  const { t } = await getServerDictionary();
   const supabase = await createServerSupabaseClient();
 
   // Fetch recent published articles for discovery
@@ -30,16 +32,15 @@ export default async function HomePage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-heritage-200/80 border border-heritage-300 text-xs font-semibold uppercase tracking-wider text-heritage-800">
             <Compass className="w-3.5 h-3.5" />
-            <span>Mémoire collective & Patrimoine local</span>
+            <span>{t('home.heroBadge')}</span>
           </div>
 
           <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-heritage-950 leading-tight">
-            Retrouver les familles & l&apos;histoire d&apos;Habses
+            {t('home.heroTitle')}
           </h1>
 
           <p className="text-base sm:text-lg lg:text-xl text-heritage-700 max-w-2xl mx-auto leading-relaxed font-serif">
-            Une initiative patrimoniale pour reconstituer progressivement la généalogie des habitants du village, 
-            découvrir les liens familiaux et documenter les événements historiques qui ont marqué la commune.
+            {t('home.heroSubtitle')}
           </p>
 
           {/* Quick Search Card */}
@@ -54,7 +55,7 @@ export default async function HomePage() {
                 <input
                   type="text"
                   name="lastName"
-                  placeholder="Rechercher un nom de famille (ex: DUPONT)..."
+                  placeholder={t('home.searchPlaceholder')}
                   className="w-full bg-transparent text-heritage-950 placeholder-heritage-400 focus:outline-none text-sm"
                 />
               </div>
@@ -62,11 +63,11 @@ export default async function HomePage() {
                 type="submit"
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-heritage-800 text-heritage-50 text-sm font-semibold hover:bg-heritage-900 transition-colors shrink-0"
               >
-                Explorer
+                {t('home.searchButton')}
               </button>
             </form>
             <p className="text-xs text-heritage-500 mt-2">
-              Seules les données des personnes décédées et validées sont publiquement consultables.
+              {t('home.privacyBadgeDesc')}
             </p>
           </div>
         </div>
@@ -81,18 +82,17 @@ export default async function HomePage() {
               <Users className="w-6 h-6" />
             </div>
             <h2 className="font-serif text-xl font-bold text-heritage-950">
-              Généalogie du village
+              {t('home.cardGenealogyTitle')}
             </h2>
             <p className="text-sm text-heritage-700 leading-relaxed">
-              Consultez les fiches des habitants passés, explorez leurs parents, enfants et conjoints, 
-              et suivez les ramifications familiales à travers les siècles.
+              {t('home.cardGenealogyDesc')}
             </p>
             <div>
               <Link
                 href="/genealogie"
                 className="inline-flex items-center space-x-1.5 text-sm font-semibold text-heritage-800 hover:text-heritage-950 hover:underline"
               >
-                <span>Rechercher une personne</span>
+                <span>{t('genealogy.searchAction')}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -104,18 +104,17 @@ export default async function HomePage() {
               <Landmark className="w-6 h-6" />
             </div>
             <h2 className="font-serif text-xl font-bold text-heritage-950">
-              Histoire communale
+              {t('home.cardHistoryTitle')}
             </h2>
             <p className="text-sm text-heritage-700 leading-relaxed">
-              Parcourez les grands événements, les périodes charnières et l&apos;évolution de la vie locale 
-              à travers des récits historiques étayés par des archives.
+              {t('home.cardHistoryDesc')}
             </p>
             <div>
               <Link
                 href="/histoire"
                 className="inline-flex items-center space-x-1.5 text-sm font-semibold text-heritage-800 hover:text-heritage-950 hover:underline"
               >
-                <span>Découvrir l&apos;histoire</span>
+                <span>{t('common.readMore')}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -127,18 +126,17 @@ export default async function HomePage() {
               <BookOpen className="w-6 h-6" />
             </div>
             <h2 className="font-serif text-xl font-bold text-heritage-950">
-              Histoires de familles
+              {t('family.title')}
             </h2>
             <p className="text-sm text-heritage-700 leading-relaxed">
-              Comprenez le contexte d&apos;implantation des lignées du village, leurs métiers documentés, 
-              leurs migrations et leur contribution à la vie locale.
+              {t('family.subtitle')}
             </p>
             <div>
               <Link
                 href="/familles"
                 className="inline-flex items-center space-x-1.5 text-sm font-semibold text-heritage-800 hover:text-heritage-950 hover:underline"
               >
-                <span>Lire les récits familiaux</span>
+                <span>{t('family.viewLineage')}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

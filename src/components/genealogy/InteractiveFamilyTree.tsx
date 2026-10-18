@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Person, Relationship, VisualFamilyTreeData } from '@/lib/types/database';
 import { formatHistoricalDate } from '@/lib/services/dates';
 import { Users, Heart, ArrowUp, ArrowDown, Maximize2, Minimize2, ZoomIn, ZoomOut, User } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/context';
 
 interface InteractiveFamilyTreeProps {
   treeData: VisualFamilyTreeData;
@@ -95,6 +96,7 @@ function TreeNodeCard({
 }
 
 export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) {
+  const { t, locale } = useTranslation();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
@@ -124,10 +126,10 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600 flex items-center space-x-1.5">
             <Users className="w-3.5 h-3.5" />
-            <span>Arbre Généalogique Visuel Multi-générations</span>
+            <span>{t('genealogy.tabTree')}</span>
           </span>
           <p className="text-xs text-heritage-500 mt-0.5">
-            {totalAncestors} aïeux documentés • {spouses.length} union(s) • {totalDescendants} descendants directs
+            {totalAncestors} {locale === 'en' ? 'documented ancestors' : 'aïeux documentés'} • {spouses.length} union(s) • {totalDescendants} {locale === 'en' ? 'direct descendants' : 'descendants directs'}
           </p>
         </div>
 
@@ -136,7 +138,7 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
             type="button"
             onClick={() => setZoomLevel((z) => Math.max(0.75, z - 0.1))}
             className="p-1.5 rounded-lg border border-heritage-300 bg-white text-heritage-700 hover:bg-heritage-100 transition-colors"
-            title="Réduire"
+            title={t('tree.zoomOut')}
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
@@ -147,7 +149,7 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
             type="button"
             onClick={() => setZoomLevel((z) => Math.min(1.25, z + 0.1))}
             className="p-1.5 rounded-lg border border-heritage-300 bg-white text-heritage-700 hover:bg-heritage-100 transition-colors"
-            title="Agrandir"
+            title={t('tree.zoomIn')}
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
@@ -156,10 +158,10 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-heritage-300 bg-white text-heritage-700 hover:bg-heritage-100 text-xs font-medium transition-colors"
-            title={isFullscreen ? 'Quitter le mode plein écran' : 'Mode plein écran'}
+            title={isFullscreen ? t('tree.exitFullscreen') : t('tree.fullscreen')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{isFullscreen ? 'Réduire' : 'Plein écran'}</span>
+            <span className="hidden sm:inline">{isFullscreen ? t('tree.exitFullscreen') : t('tree.fullscreen')}</span>
           </button>
         </div>
       </div>
@@ -174,21 +176,21 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
           {(paternalGrandparents.length > 0 || maternalGrandparents.length > 0) && (
             <div className="w-full flex flex-col items-center space-y-2">
               <span className="text-[11px] font-bold uppercase tracking-widest text-heritage-600 bg-heritage-200/70 px-3 py-0.5 rounded-full">
-                Génération +2 • Aïeux
+                {t('tree.generationGrandparents')}
               </span>
               <div className="flex flex-wrap justify-center gap-4">
                 {paternalGrandparents.map((gp) => (
                   <TreeNodeCard
                     key={gp.id}
                     person={gp}
-                    roleLabel={gp.gender === 'F' ? 'Grand-mère pat.' : 'Grand-père pat.'}
+                    roleLabel={locale === 'en' ? (gp.gender === 'F' ? 'Paternal grandmother' : 'Paternal grandfather') : (gp.gender === 'F' ? 'Grand-mère pat.' : 'Grand-père pat.')}
                   />
                 ))}
                 {maternalGrandparents.map((gp) => (
                   <TreeNodeCard
                     key={gp.id}
                     person={gp}
-                    roleLabel={gp.gender === 'F' ? 'Grand-mère mat.' : 'Grand-père mat.'}
+                    roleLabel={locale === 'en' ? (gp.gender === 'F' ? 'Maternal grandmother' : 'Maternal grandfather') : (gp.gender === 'F' ? 'Grand-mère mat.' : 'Grand-père mat.')}
                   />
                 ))}
               </div>
@@ -200,14 +202,14 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
           {parents.length > 0 ? (
             <div className="w-full flex flex-col items-center space-y-2">
               <span className="text-[11px] font-bold uppercase tracking-widest text-heritage-600 bg-heritage-200/70 px-3 py-0.5 rounded-full">
-                Génération +1 • Parents
+                {t('tree.generationParents')}
               </span>
               <div className="flex flex-wrap justify-center gap-4">
                 {parents.map((parent) => (
                   <TreeNodeCard
                     key={parent.id}
                     person={parent}
-                    roleLabel={parent.gender === 'F' ? 'Mère' : 'Père'}
+                    roleLabel={parent.gender === 'F' ? t('genealogy.mother') : t('genealogy.father')}
                   />
                 ))}
               </div>
@@ -215,25 +217,28 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
             </div>
           ) : (
             <div className="text-[11px] text-heritage-500 italic bg-heritage-100/50 px-3 py-1 rounded-full border border-dashed border-heritage-200">
-              Parents non documentés dans les actes connus
+              {t('tree.noParents')}
             </div>
           )}
 
           {/* LEVEL 0: Personne centrale + Conjoints + Fratrie */}
           <div className="w-full flex flex-col items-center space-y-3">
             <span className="text-[11px] font-bold uppercase tracking-widest text-heritage-950 bg-amber-200/80 px-3 py-0.5 rounded-full border border-amber-300">
-              Fiche Actuelle & Foyer
+              {t('tree.generationSubject')}
             </span>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
               {/* Spouses */}
               {spouses.map(({ person, relationship }) => {
-                const year = relationship.start_year ? `m. ${relationship.start_year}` : 'Union';
+                const year = relationship.start_year ? `m. ${relationship.start_year}` : (locale === 'en' ? 'Union' : 'Union');
+                const spouseRole = locale === 'en'
+                  ? (person.gender === 'F' ? `Wife (${year})` : `Husband (${year})`)
+                  : (person.gender === 'F' ? `Épouse (${year})` : `Époux (${year})`);
                 return (
                   <div key={relationship.id} className="flex items-center space-x-2">
                     <TreeNodeCard
                       person={person}
-                      roleLabel={person.gender === 'F' ? `Épouse (${year})` : `Époux (${year})`}
+                      roleLabel={spouseRole}
                     />
                     <Heart className="w-4 h-4 text-rose-500 shrink-0" />
                   </div>
@@ -243,7 +248,7 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
               {/* Central Focus Person */}
               <TreeNodeCard
                 person={focusPerson}
-                roleLabel="Fiche sélectionnée"
+                roleLabel={locale === 'en' ? 'Selected record' : 'Fiche sélectionnée'}
                 isFocus={true}
               />
 
@@ -251,13 +256,13 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
               {siblings.length > 0 && (
                 <div className="hidden lg:flex items-center space-x-2 pl-4 border-l border-heritage-300">
                   <div className="text-[10px] uppercase font-bold text-heritage-600 vertical-text pr-1">
-                    Fratrie
+                    {t('genealogy.siblings')}
                   </div>
                   {siblings.slice(0, 3).map((sib) => (
                     <TreeNodeCard
                       key={sib.id}
                       person={sib}
-                      roleLabel={sib.gender === 'F' ? 'Sœur' : 'Frère'}
+                      roleLabel={locale === 'en' ? (sib.gender === 'F' ? 'Sister' : 'Brother') : (sib.gender === 'F' ? 'Sœur' : 'Frère')}
                     />
                   ))}
                   {siblings.length > 3 && (
@@ -276,7 +281,7 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
           {children.length > 0 && (
             <div className="w-full flex flex-col items-center space-y-4">
               <span className="text-[11px] font-bold uppercase tracking-widest text-heritage-600 bg-heritage-200/70 px-3 py-0.5 rounded-full">
-                Génération -1 • Enfants ({children.length})
+                {t('tree.generationChildren')} ({children.length})
               </span>
 
               <div className="flex flex-wrap justify-center gap-6">
@@ -287,13 +292,13 @@ export function InteractiveFamilyTree({ treeData }: InteractiveFamilyTreeProps) 
                   >
                     <TreeNodeCard
                       person={child}
-                      roleLabel={child.gender === 'F' ? 'Fille' : 'Fils'}
+                      roleLabel={locale === 'en' ? (child.gender === 'F' ? 'Daughter' : 'Son') : (child.gender === 'F' ? 'Fille' : 'Fils')}
                     />
 
                     {grandchildren.length > 0 && (
                       <div className="w-full flex flex-col items-center space-y-1.5 pt-2 border-t border-heritage-200">
                         <span className="text-[10px] uppercase font-semibold text-heritage-500">
-                          Petits-enfants ({grandchildren.length})
+                          {t('tree.generationGrandchildren')} ({grandchildren.length})
                         </span>
                         <div className="flex flex-wrap justify-center gap-1.5">
                           {grandchildren.map((gc) => (

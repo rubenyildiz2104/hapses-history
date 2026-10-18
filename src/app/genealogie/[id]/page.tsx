@@ -4,6 +4,7 @@ import { getPersonWithFamily, getVisualFamilyTree } from '@/lib/services/genealo
 import { formatHistoricalDate } from '@/lib/services/dates';
 import { ConfidenceBadge } from '@/components/genealogy/ConfidenceBadge';
 import { FamilyViewTabs } from '@/components/genealogy/FamilyViewTabs';
+import { getServerDictionary } from '@/lib/i18n/server';
 import {
   Calendar,
   MapPin,
@@ -23,6 +24,8 @@ interface PersonPageProps {
 
 export default async function PersonPage({ params }: PersonPageProps) {
   const { id } = await params;
+  const { t, locale } = await getServerDictionary();
+
   const [entourage, treeData] = await Promise.all([
     getPersonWithFamily(id),
     getVisualFamilyTree(id),
@@ -39,13 +42,13 @@ export default async function PersonPage({ params }: PersonPageProps) {
     date: person.birth_date,
     year: person.birth_year,
     precision: person.birth_date_precision,
-  });
+  }, locale);
 
   const formattedDeath = formatHistoricalDate({
     date: person.death_date,
     year: person.death_year,
     precision: person.death_date_precision,
-  });
+  }, locale);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-10">
@@ -56,7 +59,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           className="inline-flex items-center space-x-1.5 text-xs font-semibold uppercase tracking-wider text-heritage-600 hover:text-heritage-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour à la recherche</span>
+          <span>{t('genealogy.backToSearch')}</span>
         </Link>
       </div>
 
@@ -77,7 +80,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-                  Fiche individuelle
+                  {t('genealogy.individualRecord')}
                 </span>
                 <ConfidenceBadge precision={person.birth_date_precision} />
               </div>
@@ -89,7 +92,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
               {person.name_variants && person.name_variants.length > 0 && (
                 <p className="text-xs sm:text-sm text-heritage-600 italic">
-                  Variantes orthographiques répertoriées : {person.name_variants.join(', ')}
+                  {t('genealogy.nameVariants', { variants: person.name_variants.join(', ') })}
                 </p>
               )}
             </div>
@@ -102,7 +105,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
               className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg border border-heritage-300 text-heritage-800 text-xs font-semibold hover:bg-heritage-50 transition-colors"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>Proposer une correction</span>
+              <span>{t('genealogy.proposeCorrection')}</span>
             </Link>
           </div>
         </div>
@@ -113,7 +116,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <div className="space-y-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-heritage-500 flex items-center space-x-1.5">
               <Calendar className="w-3.5 h-3.5 text-heritage-400" />
-              <span>Naissance</span>
+              <span>{t('genealogy.birth')}</span>
             </span>
             <div className="font-medium text-heritage-900 text-base">
               {formattedBirth}
@@ -130,7 +133,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <div className="space-y-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-heritage-500 flex items-center space-x-1.5">
               <Calendar className="w-3.5 h-3.5 text-heritage-400" />
-              <span>Décès</span>
+              <span>{t('genealogy.death')}</span>
             </span>
             <div className="font-medium text-heritage-900 text-base">
               {formattedDeath}
@@ -147,10 +150,10 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-heritage-500 flex items-center space-x-1.5">
               <Briefcase className="w-3.5 h-3.5 text-heritage-400" />
-              <span>Activité / Profession</span>
+              <span>{t('genealogy.profession')}</span>
             </span>
             <div className="font-medium text-heritage-900 text-base">
-              {person.profession || 'Non renseignée'}
+              {person.profession || t('genealogy.professionUnspecified')}
             </div>
           </div>
         </div>
@@ -159,7 +162,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
         {person.biography && (
           <div className="pt-6 border-t border-heritage-100 space-y-2">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-              Éléments biographiques
+              {t('genealogy.biography')}
             </h2>
             <p className="text-sm text-heritage-800 leading-relaxed font-serif whitespace-pre-line">
               {person.biography}
@@ -178,13 +181,13 @@ export default async function PersonPage({ params }: PersonPageProps) {
         <div className="flex items-center space-x-2">
           <FileText className="w-5 h-5 text-heritage-700" />
           <h2 className="font-serif text-xl font-bold text-heritage-950">
-            Sources & Références ({sources.length})
+            {t('genealogy.sourcesAndReferences', { count: sources.length })}
           </h2>
         </div>
 
         {sources.length === 0 ? (
           <p className="text-sm text-heritage-600 italic">
-            Aucune référence d&apos;archive publique liée directement pour le moment.
+            {t('genealogy.noSources')}
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -204,7 +207,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
                 {source.archive_reference && (
                   <p className="text-xs font-mono text-heritage-600">
-                    Cote : {source.archive_reference}
+                    {t('genealogy.archiveReference', { reference: source.archive_reference })}
                   </p>
                 )}
 
@@ -229,14 +232,14 @@ export default async function PersonPage({ params }: PersonPageProps) {
                         className="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-heritage-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
-                        <span>Agrandir le document d&apos;archive ↗</span>
+                        <span>{t('genealogy.enlargeArchive')}</span>
                       </div>
                     </a>
                   </div>
                 )}
 
                 <div className="pt-2 flex items-center justify-between text-xs text-heritage-500">
-                  <span>{source.rights_status ?? 'Domaine public'}</span>
+                  <span>{source.rights_status ?? t('common.publicDomain')}</span>
                   {source.url && (
                     <a
                       href={source.url}
@@ -244,7 +247,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
                       rel="noopener noreferrer"
                       className="inline-flex items-center space-x-1 text-heritage-800 font-semibold hover:underline"
                     >
-                      <span>Consulter l&apos;archive</span>
+                      <span>{t('genealogy.consultArchive')}</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
@@ -261,7 +264,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <div className="flex items-center space-x-2">
             <BookOpen className="w-5 h-5 text-heritage-700" />
             <h2 className="font-serif text-xl font-bold text-heritage-950">
-              Mentionné(e) dans les récits historiques ({relatedArticles.length})
+              {t('genealogy.mentionedInArticles', { count: relatedArticles.length })}
             </h2>
           </div>
 
@@ -273,7 +276,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
                 className="group block p-4 rounded-xl border border-heritage-200 bg-white hover:border-heritage-400 transition-colors space-y-1.5"
               >
                 <span className="text-xs text-heritage-500 uppercase tracking-wider font-semibold">
-                  {article.article_type === 'family' ? 'Histoire de famille' : 'Histoire locale'}
+                  {article.article_type === 'family' ? t('genealogy.familyHistoryArticle') : t('genealogy.villageHistoryArticle')}
                 </span>
                 <h3 className="font-serif text-base font-bold text-heritage-950 group-hover:text-heritage-800 transition-colors">
                   {article.title}

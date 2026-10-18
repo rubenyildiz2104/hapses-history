@@ -4,6 +4,7 @@ import { searchPersonsPublic, SearchPersonsFilters } from '@/lib/services/geneal
 import { SearchForm } from '@/components/genealogy/SearchForm';
 import { PersonCard } from '@/components/genealogy/PersonCard';
 import { Users, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getServerDictionary } from '@/lib/i18n/server';
 
 interface GenealogiePageProps {
   searchParams: Promise<{
@@ -18,6 +19,7 @@ interface GenealogiePageProps {
 
 export default async function GenealogiePage({ searchParams }: GenealogiePageProps) {
   const params = await searchParams;
+  const { t } = await getServerDictionary();
 
   const filters: SearchPersonsFilters = {
     query: params.query,
@@ -52,14 +54,13 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
       {/* Header */}
       <div className="max-w-3xl space-y-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-          Base généalogique locale
+          {t('genealogy.pageBadge')}
         </span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-heritage-950">
-          Rechercher une personne du village
+          {t('genealogy.pageTitle')}
         </h1>
         <p className="text-heritage-700 text-sm sm:text-base leading-relaxed">
-          Explorez les archives et les fiches des habitants passés. Pour préserver la vie privée des familles, 
-          seules les personnes décédées dont la fiche a été validée sont accessibles publiquement.
+          {t('genealogy.pageDesc')}
         </p>
       </div>
 
@@ -73,14 +74,14 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-heritage-200 text-sm text-heritage-700">
           <h2 id="results-heading" className="font-serif text-xl font-bold text-heritage-900">
             {hasActiveFilters ? (
-              <span>Résultats de la recherche ({totalCount})</span>
+              <span>{t('genealogy.resultsCountActive', { count: totalCount })}</span>
             ) : (
-              <span>Personnes répertoriées ({totalCount})</span>
+              <span>{t('genealogy.resultsCountAll', { count: totalCount })}</span>
             )}
           </h2>
 
           <span className="text-xs text-heritage-500 mt-1 sm:mt-0">
-            Page {currentPage} sur {Math.max(1, totalPages)}
+            {t('genealogy.pageOf', { current: currentPage, total: Math.max(1, totalPages) })}
           </span>
         </div>
 
@@ -90,17 +91,17 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
               <Users className="w-6 h-6" />
             </div>
             <h3 className="font-serif text-lg font-bold text-heritage-900">
-              Aucune personne trouvée
+              {t('genealogy.noResultsHeading')}
             </h3>
             <p className="text-sm text-heritage-600 max-w-md mx-auto">
-              Vérifiez l&apos;orthographe du nom ou essayez avec des critères plus larges (par exemple en laissant le prénom vide).
+              {t('genealogy.noResultsHelp')}
             </p>
             <div className="pt-2">
               <Link
                 href="/genealogie"
                 className="inline-flex text-xs font-semibold text-heritage-800 hover:underline"
               >
-                Afficher l&apos;ensemble des fiches publiques
+                {t('genealogy.showAllPublic')}
               </Link>
             </div>
           </div>
@@ -122,12 +123,12 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
                   className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg border border-heritage-300 text-sm font-medium text-heritage-800 hover:bg-heritage-100 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  <span>Précédent</span>
+                  <span>{t('genealogy.previous')}</span>
                 </Link>
               ) : (
                 <span className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg border border-heritage-200 text-sm font-medium text-heritage-400 cursor-not-allowed">
                   <ChevronLeft className="w-4 h-4" />
-                  <span>Précédent</span>
+                  <span>{t('genealogy.previous')}</span>
                 </span>
               )}
             </div>
@@ -144,12 +145,12 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
                   href={getPageUrl(currentPage + 1)}
                   className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg border border-heritage-300 text-sm font-medium text-heritage-800 hover:bg-heritage-100 transition-colors"
                 >
-                  <span>Suivant</span>
+                  <span>{t('genealogy.next')}</span>
                   <ChevronRight className="w-4 h-4" />
                 </Link>
               ) : (
                 <span className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg border border-heritage-200 text-sm font-medium text-heritage-400 cursor-not-allowed">
-                  <span>Suivant</span>
+                  <span>{t('genealogy.next')}</span>
                   <ChevronRight className="w-4 h-4" />
                 </span>
               )}
@@ -164,10 +165,10 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
           <AlertCircle className="w-5 h-5 text-heritage-700 mt-0.5 shrink-0" />
           <div className="space-y-1">
             <h4 className="font-serif text-sm font-bold text-heritage-950">
-              Une personne manque ou vous constatez une imprécision ?
+              {t('genealogy.proposeNoticeTitle')}
             </h4>
             <p className="text-xs text-heritage-700 leading-relaxed">
-              Les utilisateurs enregistrés peuvent proposer des fiches et des corrections avec justificatifs d&apos;archives.
+              {t('genealogy.proposeNoticeDesc')}
             </p>
           </div>
         </div>
@@ -176,7 +177,7 @@ export default async function GenealogiePage({ searchParams }: GenealogiePagePro
           href="/connexion"
           className="shrink-0 px-4 py-2 rounded-lg bg-heritage-800 text-heritage-50 text-xs font-semibold hover:bg-heritage-900 transition-colors"
         >
-          Proposer une contribution
+          {t('genealogy.proposeButton')}
         </Link>
       </aside>
     </div>

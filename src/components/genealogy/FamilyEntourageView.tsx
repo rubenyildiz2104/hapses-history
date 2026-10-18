@@ -1,13 +1,17 @@
+'use client';
+
 import { FamilyEntourage } from '@/lib/types/database';
 import { PersonCard } from './PersonCard';
 import { formatHistoricalDate } from '@/lib/services/dates';
 import { Heart, Users, ArrowUp, ArrowDown } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/context';
 
 interface FamilyEntourageViewProps {
   entourage: FamilyEntourage;
 }
 
 export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
+  const { t, locale } = useTranslation();
   const { parents, spouses, children, siblings } = entourage;
 
   const hasEntourage =
@@ -18,10 +22,14 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
       <div className="p-6 rounded-xl border border-dashed border-heritage-300 bg-heritage-50/50 text-center">
         <Users className="w-8 h-8 text-heritage-400 mx-auto mb-2" />
         <p className="text-sm text-heritage-700 font-medium">
-          Aucun lien familial documenté pour cette fiche pour le moment.
+          {locale === 'en'
+            ? 'No family relationships documented for this record yet.'
+            : 'Aucun lien familial documenté pour cette fiche pour le moment.'}
         </p>
         <p className="text-xs text-heritage-500 mt-1">
-          Les recherches généalogiques sont en cours. Vous pouvez proposer un ajout si vous disposez d&apos;actes d&apos;archives.
+          {locale === 'en'
+            ? 'Genealogical research is ongoing. You can submit a proposal if you have archive records.'
+            : 'Les recherches généalogiques sont en cours. Vous pouvez proposer un ajout si vous disposez d\'actes d\'archives.'}
         </p>
       </div>
     );
@@ -35,7 +43,7 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
           <div className="flex items-center space-x-2 mb-3 pb-1 border-b border-heritage-200">
             <ArrowUp className="w-4 h-4 text-heritage-600" />
             <h2 id="parents-heading" className="font-serif text-lg font-bold text-heritage-900">
-              Parents ({parents.length})
+              {t('genealogy.parents')} ({parents.length})
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -43,7 +51,7 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
               <PersonCard
                 key={relationId}
                 person={person}
-                relationshipLabel={person.gender === 'F' ? 'Mère' : person.gender === 'M' ? 'Père' : 'Parent'}
+                relationshipLabel={person.gender === 'F' ? t('genealogy.mother') : person.gender === 'M' ? t('genealogy.father') : t('genealogy.parents')}
               />
             ))}
           </div>
@@ -56,7 +64,7 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
           <div className="flex items-center space-x-2 mb-3 pb-1 border-b border-heritage-200">
             <Heart className="w-4 h-4 text-rose-600" />
             <h2 id="spouses-heading" className="font-serif text-lg font-bold text-heritage-900">
-              Union(s) & Conjoint(s) ({spouses.length})
+              {t('genealogy.spouses')} ({spouses.length})
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -71,12 +79,12 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
                 <div key={relationship.id} className="space-y-1.5">
                   <PersonCard
                     person={person}
-                    relationshipLabel={person.gender === 'F' ? 'Épouse' : person.gender === 'M' ? 'Époux' : 'Conjoint'}
+                    relationshipLabel={person.gender === 'F' ? (locale === 'en' ? 'Wife' : 'Épouse') : person.gender === 'M' ? (locale === 'en' ? 'Husband' : 'Époux') : (locale === 'en' ? 'Spouse' : 'Conjoint')}
                   />
                   {(relationship.start_year || relationship.start_place) && (
                     <p className="text-xs text-heritage-600 px-1 italic">
-                      Mariage : {marriageDate !== 'Date inconnue' ? marriageDate : ''}{' '}
-                      {relationship.start_place ? `à ${relationship.start_place}` : ''}
+                      {locale === 'en' ? 'Marriage:' : 'Mariage :'} {marriageDate !== 'Date inconnue' ? marriageDate : ''}{' '}
+                      {relationship.start_place ? `${locale === 'en' ? 'in' : 'à'} ${relationship.start_place}` : ''}
                     </p>
                   )}
                 </div>
@@ -92,7 +100,7 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
           <div className="flex items-center space-x-2 mb-3 pb-1 border-b border-heritage-200">
             <ArrowDown className="w-4 h-4 text-heritage-600" />
             <h2 id="children-heading" className="font-serif text-lg font-bold text-heritage-900">
-              Enfants ({children.length})
+              {t('genealogy.children')} ({children.length})
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -100,7 +108,7 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
               <PersonCard
                 key={relationId}
                 person={person}
-                relationshipLabel={person.gender === 'F' ? 'Fille' : person.gender === 'M' ? 'Fils' : 'Enfant'}
+                relationshipLabel={person.gender === 'F' ? (locale === 'en' ? 'Daughter' : 'Fille') : person.gender === 'M' ? (locale === 'en' ? 'Son' : 'Fils') : (locale === 'en' ? 'Child' : 'Enfant')}
               />
             ))}
           </div>
@@ -113,7 +121,7 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
           <div className="flex items-center space-x-2 mb-3 pb-1 border-b border-heritage-200">
             <Users className="w-4 h-4 text-heritage-600" />
             <h2 id="siblings-heading" className="font-serif text-lg font-bold text-heritage-900">
-              Frères et Sœurs ({siblings.length})
+              {t('genealogy.siblings')} ({siblings.length})
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -121,7 +129,7 @@ export function FamilyEntourageView({ entourage }: FamilyEntourageViewProps) {
               <PersonCard
                 key={relationId}
                 person={person}
-                relationshipLabel={person.gender === 'F' ? 'Sœur' : person.gender === 'M' ? 'Frère' : 'Fratrie'}
+                relationshipLabel={person.gender === 'F' ? (locale === 'en' ? 'Sister' : 'Sœur') : person.gender === 'M' ? (locale === 'en' ? 'Brother' : 'Frère') : (locale === 'en' ? 'Sibling' : 'Fratrie')}
               />
             ))}
           </div>

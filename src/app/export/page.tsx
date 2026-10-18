@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Download, ShieldCheck, Database, FileCode, CheckCircle, ArrowRight, HeartHandshake } from 'lucide-react';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getServerDictionary } from '@/lib/i18n/server';
 
 export const metadata = {
   title: 'Préservation & Export des Données | Habses Histoire & Familles',
@@ -8,6 +9,7 @@ export const metadata = {
 };
 
 export default async function ExportPage() {
+  const { t } = await getServerDictionary();
   const supabase = await createServerSupabaseClient();
 
   // Count public deceased persons
@@ -29,15 +31,13 @@ export default async function ExportPage() {
       {/* Header */}
       <div className="max-w-3xl space-y-4">
         <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-          Open Data & Sauvegarde Patrimoniale
+          {t('export.badge')}
         </span>
         <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-heritage-950 tracking-tight">
-          Préservation & Export des Données
+          {t('export.title')}
         </h1>
         <p className="text-base sm:text-lg text-heritage-800 font-serif leading-relaxed">
-          Le patrimoine et la mémoire collective de <strong>Habses</strong> n’appartiennent à aucune plateforme fermée. 
-          Nous mettons à disposition l’ensemble des données historiques et généalogiques publiques dans des formats 
-          ouverts et pérennes, compatibles avec les logiciels de généalogie de référence.
+          {t('export.subtitle')}
         </p>
       </div>
 
@@ -49,10 +49,10 @@ export default async function ExportPage() {
           </div>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-              Fiches Individuelles Publiques
+              {t('export.personsBadge')}
             </div>
             <div className="text-sm font-medium text-heritage-900">
-              Personnes décédées documentées
+              {t('export.personsDesc')}
             </div>
           </div>
         </div>
@@ -63,10 +63,10 @@ export default async function ExportPage() {
           </div>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-              Sources & Archives
+              {t('export.sourcesBadge')}
             </div>
             <div className="text-sm font-medium text-heritage-900">
-              Registres, defters et actes référencés
+              {t('export.sourcesDesc')}
             </div>
           </div>
         </div>
@@ -82,16 +82,14 @@ export default async function ExportPage() {
             </div>
             <div className="space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-heritage-600">
-                Standard Généalogique Universel
+                {t('export.gedcomSubtitle')}
               </span>
               <h2 className="font-serif text-2xl font-bold text-heritage-950">
-                Fichier GEDCOM 5.5.1 (.ged)
+                {t('export.gedcomTitle')}
               </h2>
             </div>
             <p className="text-sm text-heritage-700 leading-relaxed">
-              Format standard compatible avec tous les logiciels de généalogie : 
-              <strong> Gramps, Geneanet, MyHeritage, FamilySearch, Ancestry, Heredis</strong>. 
-              Comprend les individus, filiations, mariages et références de sources.
+              {t('export.gedcomDesc')}
             </p>
 
             <ul className="space-y-2 text-xs text-heritage-800">
@@ -116,7 +114,7 @@ export default async function ExportPage() {
             className="w-full inline-flex items-center justify-center space-x-2.5 px-6 py-3.5 rounded-xl bg-heritage-800 text-heritage-50 font-semibold text-sm hover:bg-heritage-900 transition-colors shadow-sm"
           >
             <Download className="w-4 h-4" />
-            <span>Télécharger le fichier GEDCOM (.ged)</span>
+            <span>{t('export.gedcomDownload')}</span>
           </a>
         </div>
 
@@ -128,15 +126,14 @@ export default async function ExportPage() {
             </div>
             <div className="space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-heritage-600">
-                Données Structurées Ouvertes
+                {t('export.jsonSubtitle')}
               </span>
               <h2 className="font-serif text-2xl font-bold text-heritage-950">
-                Export JSON (.json)
+                {t('export.jsonTitle')}
               </h2>
             </div>
             <p className="text-sm text-heritage-700 leading-relaxed">
-              Format brut idéal pour les chercheurs, archivistes, data scientists et développeurs 
-              souhaitant croiser les données avec d&apos;autres corpus du Tur Abdin ou de la diaspora.
+              {t('export.jsonDesc')}
             </p>
 
             <ul className="space-y-2 text-xs text-heritage-800">
@@ -161,7 +158,7 @@ export default async function ExportPage() {
             className="w-full inline-flex items-center justify-center space-x-2.5 px-6 py-3.5 rounded-xl border-2 border-heritage-800 text-heritage-900 font-semibold text-sm hover:bg-heritage-100 transition-colors shadow-sm"
           >
             <Download className="w-4 h-4 text-heritage-700" />
-            <span>Télécharger le jeu de données JSON (.json)</span>
+            <span>{t('export.jsonDownload')}</span>
           </a>
         </div>
       </div>
@@ -171,24 +168,24 @@ export default async function ExportPage() {
         <div className="flex items-center space-x-3 text-amber-950">
           <ShieldCheck className="w-6 h-6 text-amber-700 shrink-0" />
           <h3 className="font-serif text-xl font-bold">
-            Engagement Éthique et Protection Absolue de la Vie Privée
+            {t('export.privacyTitle')}
           </h3>
         </div>
         <p className="text-sm text-amber-900 leading-relaxed">
-          Conformément au cahier des charges et aux réglementations sur la protection de la vie privée (RGPD) :
+          {t('export.privacyP1')}
         </p>
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-amber-950">
           <li className="p-3 bg-white/80 rounded-lg border border-amber-200/80">
-            <strong>Exclusion totale des vivants :</strong> Aucune personne vivante ni aucune fiche au statut d&apos;incertitude (<code className="bg-amber-100 px-1 py-0.5 rounded">unknown</code>) n&apos;est jamais incluse dans les exports.
+            <strong>{t('export.rule1Title')}</strong> {t('export.rule1Desc')}
           </li>
           <li className="p-3 bg-white/80 rounded-lg border border-amber-200/80">
-            <strong>Protection des liens familiaux :</strong> Une relation n&apos;est exportée que si les deux protagonistes sont des personnes décédées publiques.
+            <strong>{t('export.rule2Title')}</strong> {t('export.rule2Desc')}
           </li>
           <li className="p-3 bg-white/80 rounded-lg border border-amber-200/80">
-            <strong>Filtrage des notes privées :</strong> Les notes administratives et coordonnées de contact sont strictement éliminées avant génération.
+            <strong>{t('export.rule3Title')}</strong> {t('export.rule3Desc')}
           </li>
           <li className="p-3 bg-white/80 rounded-lg border border-amber-200/80">
-            <strong>Licence libre :</strong> Les données sont mises à disposition sous licence Creative Commons Attribution (CC BY 4.0).
+            <strong>{t('export.rule4Title')}</strong> {t('export.rule4Desc')}
           </li>
         </ul>
       </div>
@@ -197,18 +194,17 @@ export default async function ExportPage() {
       <div className="text-center p-8 rounded-2xl border border-heritage-200 bg-white space-y-4">
         <HeartHandshake className="w-8 h-8 text-heritage-700 mx-auto" />
         <h3 className="font-serif text-xl font-bold text-heritage-950">
-          Vous possédez des archives ou des documents sur Habses ?
+          {t('export.ctaTitle')}
         </h3>
         <p className="text-sm text-heritage-700 max-w-xl mx-auto leading-relaxed">
-          Chaque acte, photographie d&apos;archive, inscription ou témoignage contribue à reconstituer 
-          la mémoire de nos familles. Vous pouvez soumettre des compléments ou corrections vérifiés.
+          {t('export.ctaDesc')}
         </p>
         <div>
           <Link
             href="/proposer"
             className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-lg bg-heritage-800 text-heritage-50 text-xs font-semibold hover:bg-heritage-900 transition-colors"
           >
-            <span>Proposer une contribution</span>
+            <span>{t('export.ctaButton')}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

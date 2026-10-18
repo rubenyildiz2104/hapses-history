@@ -5,6 +5,7 @@ import type { FamilyEntourage, VisualFamilyTreeData } from '@/lib/types/database
 import { FamilyEntourageView } from './FamilyEntourageView';
 import { InteractiveFamilyTree } from './InteractiveFamilyTree';
 import { LayoutGrid, Network } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/context';
 
 interface FamilyViewTabsProps {
   entourage: FamilyEntourage;
@@ -12,6 +13,7 @@ interface FamilyViewTabsProps {
 }
 
 export function FamilyViewTabs({ entourage, treeData }: FamilyViewTabsProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'cards' | 'tree'>('tree');
 
   return (
@@ -20,10 +22,10 @@ export function FamilyViewTabs({ entourage, treeData }: FamilyViewTabsProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-heritage-200">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-            Filiation & Générations
+            {t('tree.generationParents')} & {t('tree.generationChildren')}
           </span>
           <h2 className="font-serif text-xl sm:text-2xl font-bold text-heritage-950 mt-0.5">
-            Lignées et entourage familial
+            {t('home.cardGenealogyTitle')}
           </h2>
         </div>
 
@@ -38,7 +40,7 @@ export function FamilyViewTabs({ entourage, treeData }: FamilyViewTabsProps) {
             }`}
           >
             <Network className="w-3.5 h-3.5" />
-            <span>Arbre Graphique</span>
+            <span>{t('genealogy.tabTree')}</span>
           </button>
 
           <button
@@ -51,7 +53,7 @@ export function FamilyViewTabs({ entourage, treeData }: FamilyViewTabsProps) {
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Fiches Détaillées</span>
+            <span>{t('genealogy.tabDetails')}</span>
           </button>
         </div>
       </div>

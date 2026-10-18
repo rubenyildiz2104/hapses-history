@@ -2,9 +2,26 @@
 
 import { useState, useTransition, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { submitProposalAction, getProposalForEditAction, updateProposalAction } from '@/app/actions/proposals';
+import { 
+  submitProposalAction, 
+  getProposalForEditAction, 
+  updateProposalAction,
+  getPersonForCorrectionAction,
+  searchPersonsForCorrectionAction
+} from '@/app/actions/proposals';
 import { ProposalType, DatePrecision, LifeStatus } from '@/lib/types/database';
-import { UserPlus, Edit3, HeartHandshake, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react';
+import { 
+  UserPlus, 
+  Edit3, 
+  HeartHandshake, 
+  CheckCircle2, 
+  AlertCircle, 
+  Info, 
+  Loader2,
+  User,
+  ExternalLink,
+  Search
+} from 'lucide-react';
 import Link from 'next/link';
 
 function ProposerForm() {
@@ -21,6 +38,109 @@ function ProposerForm() {
   const [isLoadingProposal, setIsLoadingProposal] = useState(Boolean(editProposalId));
   const [adminComment, setAdminComment] = useState<string | null>(null);
   const [editTargetPersonId, setEditTargetPersonId] = useState<string | null>(null);
+
+  // Target person prefill state for 'update_person'
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(prefillTargetPersonId || null);
+  const [selectedPerson, setSelectedPerson] = useState<{
+    id: string;
+    first_names: string;
+    last_name: string;
+  } | null>(null);
+  const [isLoadingPerson, setIsLoadingPerson] = useState(Boolean(prefillTargetPersonId && !editProposalId));
+
+  // Search for person to correct when none preselected
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string;
+    first_names: string;
+    last_name: string;
+    birth_year: number | null;
+    death_year: number | null;
+    profession: string | null;
+  }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  function populateFormWithPerson(p: Record<string, unknown>) {
+    setSelectedPerson({
+      id: String(p.id),
+      first_names: String(p.first_names || ''),
+      last_name: String(p.last_name || ''),
+    });
+    setSelectedPersonId(String(p.id));
+    setProposalType('update_person');
+
+    setFirstNames(p.first_names ? String(p.first_names) : '');
+    setLastName(p.last_name ? String(p.last_name) : '');
+    if (Array.isArray(p.name_variants)) {
+      setNameVariants(p.name_variants.join(', '));
+    } else if (p.name_variants) {
+      setNameVariants(String(p.name_variants));
+    } else {
+      setNameVariants('');
+    }
+    setGender((p.gender as 'M' | 'F' | 'other' | 'unknown') || 'unknown');
+    setProfession(p.profession ? String(p.profession) : '');
+    setBiography(p.biography ? String(p.biography) : '');
+
+    setBirthYear(p.birth_year ? String(p.birth_year) : '');
+    setBirthDate(p.birth_date ? String(p.birth_date) : '');
+    setBirthDatePrecision((p.birth_date_precision as DatePrecision) || 'unknown');
+    setBirthPlace(p.birth_place ? String(p.birth_place) : '');
+
+    setDeathYear(p.death_year ? String(p.death_year) : '');
+    setDeathDate(p.death_date ? String(p.death_date) : '');
+    setDeathDatePrecision((p.death_date_precision as DatePrecision) || 'unknown');
+    setDeathPlace(p.death_place ? String(p.death_place) : '');
+    setLifeStatus((p.life_status as LifeStatus) || 'deceased');
+  }
+
+  // Load existing person data when prefillTargetPersonId is provided in URL
+  useEffect(() => {
+    if (!prefillTargetPersonId || editProposalId) return;
+
+    let isMounted = true;
+    async function loadTargetPerson() {
+      setIsLoadingPerson(true);
+      setError(null);
+      try {
+        const p = await getPersonForCorrectionAction(prefillTargetPersonId!);
+        if (!isMounted) return;
+        if (p) {
+          populateFormWithPerson(p as Record<string, unknown>);
+        } else {
+          setError('Impossible de trouver la fiche de la personne demandée pour correction.');
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err?.message || 'Erreur lors du chargement des informations de la personne.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPerson(false);
+        }
+      }
+    }
+
+    loadTargetPerson();
+    return () => {
+      isMounted = false;
+    };
+  }, [prefillTargetPersonId, editProposalId]);
+
+  async function handleSearchPersons(query: string) {
+    setSearchQuery(query);
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const results = await searchPersonsForCorrectionAction(query);
+      setSearchResults(results);
+    } finally {
+      setIsSearching(false);
+    }
+  }
 
   // Form states for Person
   const [firstNames, setFirstNames] = useState('');
@@ -165,12 +285,21 @@ function ProposerForm() {
         }
       : undefined;
 
+    const targetPersonId = editProposalId
+      ? (editTargetPersonId || prefillTargetPersonId || selectedPersonId || null)
+      : (selectedPersonId || prefillTargetPersonId || null);
+
+    if (proposalType === 'update_person' && !targetPersonId) {
+      setError('Veuillez sélectionner la personne dont vous souhaitez proposer la correction.');
+      return;
+    }
+
     startTransition(async () => {
       let res;
       if (editProposalId) {
         res = await updateProposalAction(editProposalId, {
           proposal_type: proposalType,
-          target_person_id: editTargetPersonId || prefillTargetPersonId || null,
+          target_person_id: targetPersonId,
           payload,
           sources_info,
           user_explanation: userExplanation.trim() || undefined,
@@ -178,7 +307,7 @@ function ProposerForm() {
       } else {
         res = await submitProposalAction({
           proposal_type: proposalType,
-          target_person_id: prefillTargetPersonId || null,
+          target_person_id: targetPersonId,
           payload,
           sources_info,
           user_explanation: userExplanation.trim() || undefined,
@@ -193,12 +322,12 @@ function ProposerForm() {
     });
   }
 
-  if (isLoadingProposal) {
+  if (isLoadingProposal || isLoadingPerson) {
     return (
       <div className="max-w-xl mx-auto px-4 py-24 text-center space-y-4">
         <Loader2 className="w-8 h-8 text-heritage-600 animate-spin mx-auto" />
         <p className="text-sm text-heritage-600 font-serif">
-          Chargement de votre proposition en cours...
+          {isLoadingProposal ? 'Chargement de votre proposition en cours...' : 'Chargement des informations de la personne...'}
         </p>
       </div>
     );
@@ -310,6 +439,126 @@ function ProposerForm() {
             <Edit3 className="w-4 h-4" />
             <span>Corriger une fiche existante</span>
           </button>
+        </div>
+      )}
+
+      {/* Target person banner when a person is loaded for correction */}
+      {proposalType === 'update_person' && selectedPerson && (
+        <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-300 text-amber-950 space-y-2 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <User className="w-5 h-5 text-amber-800 shrink-0" />
+              <span className="font-serif font-bold text-base text-amber-950">
+                Correction de la fiche : {selectedPerson.first_names} {selectedPerson.last_name}
+              </span>
+            </div>
+            <div className="flex items-center space-x-3 text-xs">
+              <Link
+                href={`/genealogie/${selectedPerson.id}`}
+                target="_blank"
+                className="text-amber-800 underline hover:text-amber-950 inline-flex items-center space-x-1 font-semibold"
+              >
+                <span>Consulter la fiche actuelle</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+              {!prefillTargetPersonId && !editProposalId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPerson(null);
+                    setSelectedPersonId(null);
+                    setFirstNames('');
+                    setLastName('');
+                    setNameVariants('');
+                    setProfession('');
+                    setBiography('');
+                    setBirthYear('');
+                    setDeathYear('');
+                    setBirthDate('');
+                    setDeathDate('');
+                    setBirthPlace('');
+                    setDeathPlace('');
+                  }}
+                  className="text-amber-700 hover:text-red-700 underline font-medium"
+                >
+                  Changer de personne
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-amber-800 font-serif leading-relaxed">
+            Les données officielles de cette personne ont été automatiquement chargées dans le formulaire ci-dessous. Modifiez directement les champs que vous souhaitez rectifier, puis indiquez vos sources et justificatifs.
+          </p>
+        </div>
+      )}
+
+      {/* Search picker to select a person to correct if none chosen yet */}
+      {proposalType === 'update_person' && !selectedPerson && !editProposalId && (
+        <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4">
+          <div className="space-y-1">
+            <h2 className="font-serif text-lg font-bold text-heritage-900">
+              Rechercher la personne à corriger
+            </h2>
+            <p className="text-xs text-heritage-600 font-serif">
+              Saisissez un prénom ou un nom de famille pour pré-remplir automatiquement le formulaire avec les données officielles de la personne.
+            </p>
+          </div>
+
+          <div className="relative">
+            <Search className="w-4 h-4 text-heritage-400 absolute left-3.5 top-3.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchPersons(e.target.value)}
+              placeholder="Rechercher par prénom ou nom (ex: Yildiz, Pierre...)"
+              className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+            />
+            {isSearching && (
+              <Loader2 className="w-4 h-4 text-heritage-500 animate-spin absolute right-3 top-3.5" />
+            )}
+          </div>
+
+          {searchResults.length > 0 && (
+            <div className="divide-y divide-heritage-100 border border-heritage-200 rounded-lg max-h-60 overflow-y-auto">
+              {searchResults.map((p) => (
+                <div
+                  key={p.id}
+                  className="p-3 flex items-center justify-between hover:bg-heritage-50 transition-colors"
+                >
+                  <div>
+                    <p className="font-serif font-bold text-sm text-heritage-950">
+                      {p.first_names} {p.last_name}
+                    </p>
+                    <p className="text-xs text-heritage-500">
+                      {p.birth_year ? `° ${p.birth_year}` : '° ?'} — {p.death_year ? `† ${p.death_year}` : '† ?'}
+                      {p.profession ? ` • ${p.profession}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsLoadingPerson(true);
+                      try {
+                        const fullPerson = await getPersonForCorrectionAction(p.id);
+                        if (fullPerson) populateFormWithPerson(fullPerson as Record<string, unknown>);
+                      } finally {
+                        setIsLoadingPerson(false);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-md bg-heritage-800 text-heritage-50 text-xs font-semibold hover:bg-heritage-900 transition-colors"
+                  >
+                    Sélectionner et pré-remplir
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {searchQuery.trim().length >= 2 && searchResults.length === 0 && !isSearching && (
+            <p className="text-xs text-heritage-500 italic">
+              Aucune personne trouvée pour « {searchQuery} ».
+            </p>
+          )}
         </div>
       )}
 

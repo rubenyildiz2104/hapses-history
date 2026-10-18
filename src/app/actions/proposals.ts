@@ -104,6 +104,38 @@ export async function getProposalForEditAction(proposalId: string) {
   return proposal;
 }
 
+export async function getPersonForCorrectionAction(personId: string) {
+  const adminClient = createAdminClient();
+  const { data: person, error } = await adminClient
+    .from('persons')
+    .select('*')
+    .eq('id', personId)
+    .is('archived_at', null)
+    .single();
+
+  if (error || !person) {
+    return null;
+  }
+
+  return person;
+}
+
+export async function searchPersonsForCorrectionAction(searchQuery: string) {
+  if (!searchQuery || searchQuery.trim().length < 2) return [];
+
+  const adminClient = createAdminClient();
+  const queryTerm = `%${searchQuery.trim()}%`;
+  const { data: persons } = await adminClient
+    .from('persons')
+    .select('id, first_names, last_name, birth_year, death_year, profession')
+    .is('archived_at', null)
+    .or(`first_names.ilike.${queryTerm},last_name.ilike.${queryTerm}`)
+    .order('last_name', { ascending: true })
+    .limit(10);
+
+  return persons || [];
+}
+
 export async function updateProposalAction(
   proposalId: string,
   rawInput: Record<string, unknown>

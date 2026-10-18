@@ -32,8 +32,7 @@ export default function InscriptionPage() {
           Compte créé avec succès !
         </h1>
         <p className="text-sm text-heritage-700 leading-relaxed">
-          Un e-mail de confirmation a été envoyé à votre adresse pour valider votre compte. 
-          Une fois confirmé, vous pourrez vous connecter et proposer vos contributions généalogiques.
+          Votre compte contributeur a été créé avec succès. Vous pouvez dès à présent vous connecter pour proposer vos contributions généalogiques et suivre leur validation.
         </p>
         <div className="pt-4">
           <Link

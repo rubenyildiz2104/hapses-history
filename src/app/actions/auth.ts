@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 
@@ -30,7 +31,11 @@ function mapAuthError(error: { message: string } | null, defaultMsg: string): st
   if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
     return "Le serveur a temporairement dépassé le quota d'envoi d'e-mails. Veuillez patienter quelques minutes avant de réessayer.";
   }
-  if (msg.includes('already registered') || msg.includes('user already exists')) {
+  if (
+    msg.includes('already registered') ||
+    msg.includes('user already exists') ||
+    msg.includes('already been registered')
+  ) {
     return "Un compte est déjà associé à cette adresse e-mail. Veuillez vous connecter ou réinitialiser votre mot de passe.";
   }
   if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
@@ -60,7 +65,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signInWithPassword({
-    email: email.trim(),
+    email: email.trim().toLowerCase(),
     password,
   });
 
@@ -95,26 +100,54 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
     };
   }
 
-  const origin = await getRequestOrigin();
-  const emailRedirectTo = `${origin}/auth/callback?next=/compte/propositions`;
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanDisplayName = displayName.trim();
 
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.signUp({
-    email: email.trim(),
-    password,
-    options: {
-      emailRedirectTo,
-      data: {
-        display_name: displayName.trim(),
+  try {
+    // 1. Create active user via privileged admin client to bypass the free tier 3 emails/hour SMTP rate limit
+    const adminClient = createAdminClient();
+    const { data, error: adminError } = await adminClient.auth.admin.createUser({
+      email: cleanEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        display_name: cleanDisplayName,
       },
-    },
-  });
+    });
 
-  if (error) {
-    return { success: false, error: mapAuthError(error, "Une erreur est survenue lors de l'inscription.") };
+    if (adminError) {
+      return { success: false, error: mapAuthError(adminError, "Une erreur est survenue lors de l'inscription.") };
+    }
+
+    if (!data.user) {
+      return { success: false, error: "Impossible de créer le compte utilisateur." };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.warn('[signUpAction] Admin user creation failed, falling back to standard signUp:', err);
+
+    const origin = await getRequestOrigin();
+    const emailRedirectTo = `${origin}/auth/callback?next=/compte/propositions`;
+
+    const supabase = await createServerSupabaseClient();
+    const { error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: {
+        emailRedirectTo,
+        data: {
+          display_name: cleanDisplayName,
+        },
+      },
+    });
+
+    if (error) {
+      return { success: false, error: mapAuthError(error, "Une erreur est survenue lors de l'inscription.") };
+    }
+
+    return { success: true };
   }
-
-  return { success: true };
 }
 
 export async function signOutAction() {
@@ -133,7 +166,7 @@ export async function resetPasswordAction(formData: FormData): Promise<AuthActio
   const redirectTo = `${origin}/auth/callback?next=/compte/reinitialiser-mot-de-passe`;
 
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
     redirectTo,
   });
 

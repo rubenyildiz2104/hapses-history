@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FamilyEntourage } from '@/lib/types/database';
-import { VisualFamilyTreeData } from '@/lib/services/genealogy';
+import type { FamilyEntourage, VisualFamilyTreeData } from '@/lib/types/database';
 import { FamilyEntourageView } from './FamilyEntourageView';
 import { InteractiveFamilyTree } from './InteractiveFamilyTree';
 import { LayoutGrid, Network } from 'lucide-react';

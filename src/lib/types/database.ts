@@ -174,3 +174,14 @@ export interface FamilyEntourage {
   sources: Source[];
   relatedArticles: Array<Pick<HistoricalArticle, 'id' | 'title' | 'slug' | 'summary' | 'article_type'>>;
 }
+
+export interface VisualFamilyTreeData {
+  focusPerson: Person;
+  paternalGrandparents: Person[];
+  maternalGrandparents: Person[];
+  parents: Person[];
+  spouses: Array<{ person: Person; relationship: Relationship }>;
+  children: Array<{ person: Person; grandchildren: Person[] }>;
+  siblings: Person[];
+}
+

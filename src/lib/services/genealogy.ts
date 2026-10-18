@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server';
-import { Person, Relationship, Source, HistoricalArticle, FamilyEntourage } from '../types/database';
+import { Person, Relationship, Source, HistoricalArticle, FamilyEntourage, VisualFamilyTreeData } from '../types/database';
 import { isPersonPublic, isRelationshipPublic, sanitizeSourceForPublic } from './privacy';
 
 export interface SearchPersonsFilters {
@@ -314,16 +314,6 @@ export async function getPersonWithFamily(id: string): Promise<FamilyEntourage |
     sources,
     relatedArticles,
   };
-}
-
-export interface VisualFamilyTreeData {
-  focusPerson: Person;
-  paternalGrandparents: Person[];
-  maternalGrandparents: Person[];
-  parents: Person[];
-  spouses: Array<{ person: Person; relationship: Relationship }>;
-  children: Array<{ person: Person; grandchildren: Person[] }>;
-  siblings: Person[];
 }
 
 /**

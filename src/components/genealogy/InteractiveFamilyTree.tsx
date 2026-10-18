@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Person, Relationship } from '@/lib/types/database';
-import { VisualFamilyTreeData } from '@/lib/services/genealogy';
+import type { Person, Relationship, VisualFamilyTreeData } from '@/lib/types/database';
 import { formatHistoricalDate } from '@/lib/services/dates';
 import { Users, Heart, ArrowUp, ArrowDown, Maximize2, Minimize2, ZoomIn, ZoomOut, User } from 'lucide-react';
 

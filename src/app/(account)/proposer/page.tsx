@@ -2,19 +2,25 @@
 
 import { useState, useTransition, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { submitProposalAction } from '@/app/actions/proposals';
+import { submitProposalAction, getProposalForEditAction, updateProposalAction } from '@/app/actions/proposals';
 import { ProposalType, DatePrecision, LifeStatus } from '@/lib/types/database';
-import { UserPlus, Edit3, HeartHandshake, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { UserPlus, Edit3, HeartHandshake, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 function ProposerForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillTargetPersonId = searchParams.get('targetPersonId');
+  const editProposalId = searchParams.get('editProposalId');
 
   const [proposalType, setProposalType] = useState<ProposalType>(
     prefillTargetPersonId ? 'update_person' : 'add_person'
   );
+
+  // Edit proposal state
+  const [isLoadingProposal, setIsLoadingProposal] = useState(Boolean(editProposalId));
+  const [adminComment, setAdminComment] = useState<string | null>(null);
+  const [editTargetPersonId, setEditTargetPersonId] = useState<string | null>(null);
 
   // Form states for Person
   const [firstNames, setFirstNames] = useState('');
@@ -47,6 +53,78 @@ function ProposerForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Load existing proposal data when editProposalId is set
+  useEffect(() => {
+    if (!editProposalId) return;
+
+    let isMounted = true;
+    async function loadProposal() {
+      setIsLoadingProposal(true);
+      setError(null);
+      try {
+        const p = await getProposalForEditAction(editProposalId!);
+        if (!isMounted) return;
+
+        if (!p) {
+          setError('Impossible de charger cette proposition. Elle a peut-être été supprimée ou vous n’avez pas les droits nécessaires.');
+          setIsLoadingProposal(false);
+          return;
+        }
+
+        setProposalType(p.proposal_type as ProposalType);
+        setEditTargetPersonId(p.target_person_id || null);
+        if (p.review_comment) {
+          setAdminComment(p.review_comment);
+        }
+
+        const payload = (p.payload || {}) as Record<string, unknown>;
+        const sources = (p.sources_info || {}) as Record<string, unknown>;
+
+        setFirstNames(payload.first_names ? String(payload.first_names) : '');
+        setLastName(payload.last_name ? String(payload.last_name) : '');
+        if (Array.isArray(payload.name_variants)) {
+          setNameVariants(payload.name_variants.join(', '));
+        } else if (payload.name_variants) {
+          setNameVariants(String(payload.name_variants));
+        }
+        setGender((payload.gender as 'M' | 'F' | 'other' | 'unknown') || 'unknown');
+        setProfession(payload.profession ? String(payload.profession) : '');
+        setBiography(payload.biography ? String(payload.biography) : '');
+
+        setBirthYear(payload.birth_year ? String(payload.birth_year) : '');
+        setBirthDate(payload.birth_date ? String(payload.birth_date) : '');
+        setBirthDatePrecision((payload.birth_date_precision as DatePrecision) || 'unknown');
+        setBirthPlace(payload.birth_place ? String(payload.birth_place) : '');
+
+        setDeathYear(payload.death_year ? String(payload.death_year) : '');
+        setDeathDate(payload.death_date ? String(payload.death_date) : '');
+        setDeathDatePrecision((payload.death_date_precision as DatePrecision) || 'unknown');
+        setDeathPlace(payload.death_place ? String(payload.death_place) : '');
+        setLifeStatus((payload.life_status as LifeStatus) || 'deceased');
+
+        setSourceTitle(sources.title ? String(sources.title) : '');
+        setArchiveReference(sources.archive_reference ? String(sources.archive_reference) : '');
+        setSourceUrl(sources.url ? String(sources.url) : '');
+        setSourceDescription(sources.description ? String(sources.description) : '');
+        setUncertaintyNotes(sources.uncertainty_notes ? String(sources.uncertainty_notes) : '');
+        setUserExplanation(payload.user_explanation ? String(payload.user_explanation) : '');
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err?.message || 'Erreur lors du chargement de la proposition.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingProposal(false);
+        }
+      }
+    }
+
+    loadProposal();
+    return () => {
+      isMounted = false;
+    };
+  }, [editProposalId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -88,13 +166,24 @@ function ProposerForm() {
       : undefined;
 
     startTransition(async () => {
-      const res = await submitProposalAction({
-        proposal_type: proposalType,
-        target_person_id: prefillTargetPersonId || null,
-        payload,
-        sources_info,
-        user_explanation: userExplanation.trim() || undefined,
-      });
+      let res;
+      if (editProposalId) {
+        res = await updateProposalAction(editProposalId, {
+          proposal_type: proposalType,
+          target_person_id: editTargetPersonId || prefillTargetPersonId || null,
+          payload,
+          sources_info,
+          user_explanation: userExplanation.trim() || undefined,
+        });
+      } else {
+        res = await submitProposalAction({
+          proposal_type: proposalType,
+          target_person_id: prefillTargetPersonId || null,
+          payload,
+          sources_info,
+          user_explanation: userExplanation.trim() || undefined,
+        });
+      }
 
       if (res.success) {
         setSuccess(true);
@@ -104,6 +193,17 @@ function ProposerForm() {
     });
   }
 
+  if (isLoadingProposal) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-24 text-center space-y-4">
+        <Loader2 className="w-8 h-8 text-heritage-600 animate-spin mx-auto" />
+        <p className="text-sm text-heritage-600 font-serif">
+          Chargement de votre proposition en cours...
+        </p>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-4">
@@ -111,11 +211,12 @@ function ProposerForm() {
           <CheckCircle2 className="w-7 h-7" />
         </div>
         <h1 className="font-serif text-2xl font-bold text-heritage-950">
-          Proposition envoyée avec succès !
+          {editProposalId ? 'Proposition mise à jour avec succès !' : 'Proposition envoyée avec succès !'}
         </h1>
         <p className="text-sm text-heritage-700 leading-relaxed font-serif">
-          Votre proposition a été enregistrée en attente de modération. Conformément aux règles du projet, 
-          elle sera examinée par l&apos;administrateur avant toute intégration officielle aux données du village.
+          {editProposalId
+            ? 'Vos modifications et précisions ont bien été transmises. Votre proposition est repassée en attente de modération auprès de l’administrateur.'
+            : 'Votre proposition a été enregistrée en attente de modération. Conformément aux règles du projet, elle sera examinée par l’administrateur avant toute intégration officielle aux données du village.'}
         </p>
         <div className="pt-4 flex justify-center space-x-3">
           <Link
@@ -124,21 +225,25 @@ function ProposerForm() {
           >
             Suivre mes propositions
           </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setSuccess(false);
-              setFirstNames('');
-              setLastName('');
-              setNameVariants('');
-              setBirthYear('');
-              setDeathYear('');
-              setSourceTitle('');
-            }}
-            className="px-5 py-2.5 rounded-lg border border-heritage-300 text-heritage-800 text-sm font-medium hover:bg-heritage-100 transition-colors"
-          >
-            Faire une autre proposition
-          </button>
+          {!editProposalId && (
+            <button
+              type="button"
+              onClick={() => {
+                setSuccess(false);
+                setFirstNames('');
+                setLastName('');
+                setNameVariants('');
+                setProfession('');
+                setBiography('');
+                setBirthYear('');
+                setDeathYear('');
+                setSourceTitle('');
+              }}
+              className="px-5 py-2.5 rounded-lg border border-heritage-300 text-heritage-800 text-sm font-medium hover:bg-heritage-100 transition-colors"
+            >
+              Faire une autre proposition
+            </button>
+          )}
         </div>
       </div>
     );
@@ -152,42 +257,61 @@ function ProposerForm() {
           Espace de contribution
         </span>
         <h1 className="font-serif text-3xl font-bold text-heritage-950">
-          Proposer un ajout ou une correction
+          {editProposalId ? 'Modifier ma proposition' : 'Proposer un ajout ou une correction'}
         </h1>
         <p className="text-sm text-heritage-700 leading-relaxed">
-          Participez à la mémoire du village. Aucune modification ne modifie directement les données officielles 
-          sans validation préalable par l&apos;administrateur.
+          {editProposalId
+            ? 'Apportez vos précisions ou corrections à la fiche ci-dessous. Dès enregistrement, la proposition sera transmise à l’administrateur pour réexamen.'
+            : 'Participez à la mémoire du village. Aucune modification ne modifie directement les données officielles sans validation préalable par l’administrateur.'}
         </p>
       </div>
 
-      {/* Type Selector Tabs */}
-      <div className="flex border-b border-heritage-200 gap-2">
-        <button
-          type="button"
-          onClick={() => setProposalType('add_person')}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
-            proposalType === 'add_person'
-              ? 'border-heritage-800 text-heritage-950'
-              : 'border-transparent text-heritage-500 hover:text-heritage-800'
-          }`}
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Ajouter une personne</span>
-        </button>
+      {/* Admin clarification banner if editing */}
+      {adminComment && (
+        <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 space-y-1.5 shadow-sm">
+          <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-sky-800">
+            <AlertCircle className="w-4 h-4 text-sky-600 shrink-0" />
+            <span>Précisions demandées par l’administrateur</span>
+          </div>
+          <p className="font-serif italic text-sm pl-6 leading-relaxed text-sky-950">
+            « {adminComment} »
+          </p>
+          <p className="text-xs text-sky-700 pl-6">
+            Complétez ou rectifiez les informations ci-dessous puis validez pour renvoyer votre fiche.
+          </p>
+        </div>
+      )}
 
-        <button
-          type="button"
-          onClick={() => setProposalType('update_person')}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
-            proposalType === 'update_person'
-              ? 'border-heritage-800 text-heritage-950'
-              : 'border-transparent text-heritage-500 hover:text-heritage-800'
-          }`}
-        >
-          <Edit3 className="w-4 h-4" />
-          <span>Corriger une fiche existante</span>
-        </button>
-      </div>
+      {/* Type Selector Tabs (hidden if editing existing proposal) */}
+      {!editProposalId && (
+        <div className="flex border-b border-heritage-200 gap-2">
+          <button
+            type="button"
+            onClick={() => setProposalType('add_person')}
+            className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
+              proposalType === 'add_person'
+                ? 'border-heritage-800 text-heritage-950'
+                : 'border-transparent text-heritage-500 hover:text-heritage-800'
+            }`}
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Ajouter une personne</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setProposalType('update_person')}
+            className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
+              proposalType === 'update_person'
+                ? 'border-heritage-800 text-heritage-950'
+                : 'border-transparent text-heritage-500 hover:text-heritage-800'
+            }`}
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Corriger une fiche existante</span>
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm flex items-start space-x-2.5">
@@ -250,7 +374,7 @@ function ProposerForm() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
-                Genre historique
+                Genre
               </label>
               <select
                 value={gender}
@@ -261,6 +385,32 @@ function ProposerForm() {
                 <option value="M">Masculin</option>
                 <option value="F">Féminin</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                Métier / Profession
+              </label>
+              <input
+                type="text"
+                value={profession}
+                onChange={(e) => setProfession(e.target.value)}
+                placeholder="Ex: Tisserand, Cultivateur, Maçon..."
+                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                Notice biographique / Notes complémentaires
+              </label>
+              <textarea
+                rows={3}
+                value={biography}
+                onChange={(e) => setBiography(e.target.value)}
+                placeholder="Informations sur la vie de la personne, parcours, contexte historique ou familial..."
+                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+              />
             </div>
           </div>
         </div>
@@ -458,7 +608,7 @@ function ProposerForm() {
         {/* Submit Button */}
         <div className="flex items-center justify-end space-x-3 pt-4">
           <Link
-            href="/genealogie"
+            href={editProposalId ? '/compte/propositions' : '/genealogie'}
             className="px-5 py-2.5 rounded-lg border border-heritage-300 text-heritage-800 text-sm font-medium hover:bg-heritage-100 transition-colors"
           >
             Annuler
@@ -468,7 +618,11 @@ function ProposerForm() {
             disabled={isPending}
             className="px-6 py-2.5 rounded-lg bg-heritage-800 text-heritage-50 font-semibold text-sm hover:bg-heritage-900 transition-colors disabled:opacity-50"
           >
-            {isPending ? 'Envoi en cours...' : 'Soumettre pour modération'}
+            {isPending
+              ? 'Enregistrement en cours...'
+              : editProposalId
+              ? 'Enregistrer et renvoyer pour modération'
+              : 'Soumettre pour modération'}
           </button>
         </div>
       </form>

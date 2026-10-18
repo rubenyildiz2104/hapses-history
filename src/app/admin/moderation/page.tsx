@@ -104,6 +104,7 @@ export default async function AdminModerationPage(props: PageProps) {
         payload: p.payload as Record<string, unknown>,
         sources_info: p.sources_info as Record<string, unknown> | null,
         status: p.status,
+        review_comment: p.review_comment || null,
         created_at: p.created_at,
         potential_duplicates,
       };

@@ -12,7 +12,8 @@ import {
   Calendar, 
   MapPin, 
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  Edit3
 } from 'lucide-react';
 import { signOutAction } from '@/app/actions/auth';
 import { ProposalStatus, ProposalType } from '@/lib/types/database';
@@ -325,6 +326,35 @@ export default async function MesPropositionsPage() {
                       <p className="font-serif leading-relaxed pl-5">
                         « {proposal.review_comment} »
                       </p>
+                    </div>
+                  )}
+
+                  {/* Action button if needs_information */}
+                  {proposal.status === 'needs_information' && (
+                    <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-sky-100">
+                      <span className="text-xs text-sky-800 font-medium">
+                        L’administrateur attend vos précisions pour valider cette fiche.
+                      </span>
+                      <Link
+                        href={`/proposer?editProposalId=${proposal.id}`}
+                        className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-sky-700 text-white text-xs font-semibold hover:bg-sky-800 transition-colors shadow-sm shrink-0 w-fit"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Apporter les précisions</span>
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Action button if pending (edit before review) */}
+                  {proposal.status === 'pending' && (
+                    <div className="pt-2 flex justify-end border-t border-heritage-100">
+                      <Link
+                        href={`/proposer?editProposalId=${proposal.id}`}
+                        className="inline-flex items-center space-x-1 text-xs font-medium text-heritage-600 hover:text-heritage-950 hover:underline"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Modifier avant modération</span>
+                      </Link>
                     </div>
                   )}
 

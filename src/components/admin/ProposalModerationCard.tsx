@@ -42,6 +42,7 @@ export interface ModerationProposal {
   payload: Record<string, unknown>;
   sources_info: Record<string, unknown> | null;
   status: string;
+  review_comment?: string | null;
   created_at: string;
   potential_duplicates?: DuplicateCandidate[];
 }
@@ -126,6 +127,19 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
       {/* Main card body */}
       {expanded && (
         <div className="p-6 space-y-6">
+          {/* PREVIOUS CLARIFICATION REMINDER IF RE-SUBMITTED */}
+          {Boolean(proposal.review_comment) && (
+            <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 space-y-1.5 shadow-sm">
+              <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-sky-800">
+                <MessageSquare className="w-4 h-4 text-sky-600 shrink-0" />
+                <span>Demande de précisions envoyée précédemment</span>
+              </div>
+              <p className="font-serif italic text-xs sm:text-sm pl-6 text-sky-950 leading-relaxed">
+                « {proposal.review_comment} »
+              </p>
+            </div>
+          )}
+
           {/* POTENTIAL DUPLICATE ADVISORY BANNER */}
           {duplicates.length > 0 && (
             <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-300 text-amber-900 space-y-2">

@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { SubmitProposalSchema } from '@/lib/validations/proposal';
 import { revalidatePath } from 'next/cache';
 
@@ -65,5 +66,130 @@ export async function submitProposalAction(
   return {
     success: true,
     proposalId: proposal.id,
+  };
+}
+
+export async function getProposalForEditAction(proposalId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const adminClient = createAdminClient();
+  const { data: proposal, error } = await adminClient
+    .from('proposals')
+    .select('*')
+    .eq('id', proposalId)
+    .single();
+
+  if (error || !proposal) {
+    return null;
+  }
+
+  // Verify ownership or admin role
+  if (proposal.submitted_by !== user.id) {
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return null;
+    }
+  }
+
+  return proposal;
+}
+
+export async function updateProposalAction(
+  proposalId: string,
+  rawInput: Record<string, unknown>
+): Promise<SubmitProposalResult> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return {
+      success: false,
+      error: 'Vous devez être connecté pour modifier cette proposition.',
+    };
+  }
+
+  const adminClient = createAdminClient();
+  const { data: existing, error: fetchError } = await adminClient
+    .from('proposals')
+    .select('*')
+    .eq('id', proposalId)
+    .single();
+
+  if (fetchError || !existing) {
+    return { success: false, error: 'Proposition introuvable.' };
+  }
+
+  if (existing.submitted_by !== user.id) {
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return { success: false, error: 'Vous n\'êtes pas autorisé à modifier cette proposition.' };
+    }
+  }
+
+  if (existing.status === 'accepted') {
+    return { success: false, error: 'Cette proposition a déjà été acceptée et ne peut plus être modifiée.' };
+  }
+
+  // Validate input with defaults from existing proposal
+  const inputWithDefaults = {
+    proposal_type: rawInput.proposal_type || existing.proposal_type,
+    target_person_id: rawInput.target_person_id ?? existing.target_person_id,
+    target_relationship_id: rawInput.target_relationship_id ?? existing.target_relationship_id,
+    ...rawInput,
+  };
+
+  const validation = SubmitProposalSchema.safeParse(inputWithDefaults);
+  if (!validation.success) {
+    const errorMsg = validation.error.issues.map((i) => i.message).join('. ');
+    return { success: false, error: errorMsg };
+  }
+
+  const { payload, sources_info, user_explanation, proposal_type, target_person_id, target_relationship_id } = validation.data;
+
+  // Update proposal and set status back to 'pending' for re-review
+  const { error: updateError } = await adminClient
+    .from('proposals')
+    .update({
+      proposal_type,
+      target_person_id: target_person_id || null,
+      target_relationship_id: target_relationship_id || null,
+      payload: {
+        ...payload,
+        user_explanation: user_explanation || null,
+      },
+      sources_info: sources_info || null,
+      status: 'pending',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', proposalId);
+
+  if (updateError) {
+    return {
+      success: false,
+      error: updateError.message || 'Erreur lors de la mise à jour de votre proposition.',
+    };
+  }
+
+  revalidatePath('/compte/propositions');
+  revalidatePath('/admin/moderation');
+
+  return {
+    success: true,
+    proposalId,
   };
 }

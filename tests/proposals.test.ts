@@ -152,4 +152,46 @@ describe('Proposal Submission & Editing Validation', () => {
     const res = SubmitProposalSchema.safeParse(selfRelProposal);
     expect(res.success).toBe(false);
   });
+
+  it('validates an add_relationship proposal (sibling) with optional common parent fields', () => {
+    const siblingProposal = {
+      proposal_type: 'add_relationship',
+      payload: {
+        relationship_type: 'sibling',
+        person_a_id: '11111111-1111-4111-8111-111111111111',
+        person_b_id: '22222222-2222-4222-8222-222222222222',
+        common_parent_first_names: 'Hanna',
+        common_parent_last_name: 'YILDIZ',
+        common_parent_gender: 'M',
+        notes: 'Frères biologiques',
+      },
+      sources_info: {
+        title: 'Mémoire familiale',
+      },
+    };
+
+    const res = SubmitProposalSchema.safeParse(siblingProposal);
+    expect(res.success).toBe(true);
+  });
+
+  it('validates an add_person proposal with sibling_id and common parent info', () => {
+    const newPersonWithSibling = {
+      proposal_type: 'add_person',
+      payload: {
+        first_names: 'Sara',
+        last_name: 'YILDIZ',
+        gender: 'F',
+        birth_year: 1940,
+        life_status: 'deceased',
+        sibling_id: '11111111-1111-4111-8111-111111111111',
+        common_parent_first_names: 'Hanna',
+        common_parent_gender: 'M',
+        visibility: 'public',
+      },
+    };
+
+    const res = SubmitProposalSchema.safeParse(newPersonWithSibling);
+    expect(res.success).toBe(true);
+  });
 });
+

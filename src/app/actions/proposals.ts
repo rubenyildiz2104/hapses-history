@@ -133,6 +133,41 @@ export async function getPersonSummaryAction(personId: string) {
   return person || null;
 }
 
+export async function getPersonParentsAction(personId: string) {
+  if (!personId) return [];
+  const adminClient = createAdminClient();
+  const { data: rels } = await adminClient
+    .from('relationships')
+    .select(`
+      person_a_id,
+      parent:persons!relationships_person_a_id_fkey(
+        id,
+        first_names,
+        last_name,
+        birth_year,
+        death_year,
+        profession,
+        gender
+      )
+    `)
+    .eq('relationship_type', 'parent_child')
+    .eq('person_b_id', personId)
+    .is('archived_at', null);
+
+  if (!rels) return [];
+  return rels
+    .map((r: any) => r.parent)
+    .filter((p: any): p is {
+      id: string;
+      first_names: string;
+      last_name: string;
+      birth_year: number | null;
+      death_year: number | null;
+      profession: string | null;
+      gender: string | null;
+    } => Boolean(p));
+}
+
 export async function searchPersonsForCorrectionAction(searchQuery: string) {
   if (!searchQuery || searchQuery.trim().length < 2) return [];
 

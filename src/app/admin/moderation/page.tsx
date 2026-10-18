@@ -61,6 +61,7 @@ export default async function AdminModerationPage(props: PageProps) {
       if (p.proposal_type === 'add_person') {
         if (payload.parent_id) ids.push(String(payload.parent_id));
         if (payload.spouse_id) ids.push(String(payload.spouse_id));
+        if (payload.sibling_id) ids.push(String(payload.sibling_id));
       }
       return ids;
     })
@@ -121,6 +122,7 @@ export default async function AdminModerationPage(props: PageProps) {
         person_b: pPayload.person_b_id ? targetPersonsMap.get(String(pPayload.person_b_id)) : null,
         parent_person: pPayload.parent_id ? targetPersonsMap.get(String(pPayload.parent_id)) : null,
         spouse_person: pPayload.spouse_id ? targetPersonsMap.get(String(pPayload.spouse_id)) : null,
+        sibling_person: pPayload.sibling_id ? targetPersonsMap.get(String(pPayload.sibling_id)) : null,
         payload: pPayload,
         sources_info: p.sources_info as Record<string, unknown> | null,
         status: p.status,

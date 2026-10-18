@@ -8,7 +8,8 @@ import {
   updateProposalAction,
   getPersonForCorrectionAction,
   searchPersonsForCorrectionAction,
-  getPersonSummaryAction
+  getPersonSummaryAction,
+  getPersonParentsAction
 } from '@/app/actions/proposals';
 import { ProposalType, DatePrecision, LifeStatus } from '@/lib/types/database';
 import { 
@@ -23,7 +24,8 @@ import {
   ExternalLink,
   Search,
   ArrowRight,
-  X
+  X,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -34,6 +36,7 @@ interface PersonSummary {
   birth_year: number | null;
   death_year: number | null;
   profession: string | null;
+  gender?: string | null;
 }
 
 function PersonPicker({
@@ -232,15 +235,24 @@ function ProposerForm() {
   // Optional family link when adding a new person (add_person)
   const [parentPerson, setParentPerson] = useState<PersonSummary | null>(null);
   const [spousePerson, setSpousePerson] = useState<PersonSummary | null>(null);
+  const [siblingPerson, setSiblingPerson] = useState<PersonSummary | null>(null);
+  const [siblingDetectedParents, setSiblingDetectedParents] = useState<PersonSummary[]>([]);
 
   // Form states for Relationship (add_relationship)
-  const [relType, setRelType] = useState<'parent_child' | 'spouse'>('parent_child');
+  const [relType, setRelType] = useState<'parent_child' | 'spouse' | 'sibling'>('parent_child');
   const [relPersonA, setRelPersonA] = useState<PersonSummary | null>(null);
   const [relPersonB, setRelPersonB] = useState<PersonSummary | null>(null);
   const [relStartYear, setRelStartYear] = useState('');
   const [relStartDate, setRelStartDate] = useState('');
   const [relStartPlace, setRelStartPlace] = useState('');
   const [relNotes, setRelNotes] = useState('');
+
+  // Common parent details for sibling relationship (when neither has a parent in DB)
+  const [relPersonAParents, setRelPersonAParents] = useState<PersonSummary[]>([]);
+  const [relPersonBParents, setRelPersonBParents] = useState<PersonSummary[]>([]);
+  const [relCommonParentFirstNames, setRelCommonParentFirstNames] = useState('');
+  const [relCommonParentLastName, setRelCommonParentLastName] = useState('');
+  const [relCommonParentGender, setRelCommonParentGender] = useState<'M' | 'F'>('M');
 
   // Sources & explanations (shared across all forms)
   const [sourceTitle, setSourceTitle] = useState('');
@@ -332,6 +344,7 @@ function ProposerForm() {
         if (isMounted && summary) {
           setRelPersonA(summary);
           setProposalType('add_relationship');
+          setRelCommonParentLastName(summary.last_name);
         }
       } catch {
         // Ignore error
@@ -342,6 +355,51 @@ function ProposerForm() {
       isMounted = false;
     };
   }, [personAParam, editProposalId]);
+
+  // Check parents of Person A when Person A changes
+  useEffect(() => {
+    if (!relPersonA) {
+      setRelPersonAParents([]);
+      return;
+    }
+    setRelCommonParentLastName(relPersonA.last_name);
+    let isMounted = true;
+    getPersonParentsAction(relPersonA.id).then((parents) => {
+      if (isMounted) setRelPersonAParents(parents);
+    });
+    return () => { isMounted = false; };
+  }, [relPersonA]);
+
+  // Check parents of Person B when Person B changes
+  useEffect(() => {
+    if (!relPersonB) {
+      setRelPersonBParents([]);
+      return;
+    }
+    let isMounted = true;
+    getPersonParentsAction(relPersonB.id).then((parents) => {
+      if (isMounted) setRelPersonBParents(parents);
+    });
+    return () => { isMounted = false; };
+  }, [relPersonB]);
+
+  // Check parents when siblingPerson is selected in add_person
+  useEffect(() => {
+    if (!siblingPerson) {
+      setSiblingDetectedParents([]);
+      return;
+    }
+    let isMounted = true;
+    getPersonParentsAction(siblingPerson.id).then((parents) => {
+      if (isMounted) {
+        setSiblingDetectedParents(parents);
+        if (parents.length > 0 && !parentPerson) {
+          setParentPerson(parents[0]);
+        }
+      }
+    });
+    return () => { isMounted = false; };
+  }, [siblingPerson, parentPerson]);
 
   async function handleSearchPersons(query: string) {
     setSearchQuery(query);
@@ -387,11 +445,14 @@ function ProposerForm() {
         const sources = (p.sources_info || {}) as Record<string, unknown>;
 
         if (pType === 'add_relationship') {
-          setRelType((payload.relationship_type as 'parent_child' | 'spouse') || 'parent_child');
+          setRelType((payload.relationship_type as 'parent_child' | 'spouse' | 'sibling') || 'parent_child');
           setRelStartYear(payload.start_year ? String(payload.start_year) : '');
           setRelStartDate(payload.start_date ? String(payload.start_date) : '');
           setRelStartPlace(payload.start_place ? String(payload.start_place) : '');
           setRelNotes(payload.notes ? String(payload.notes) : '');
+          setRelCommonParentFirstNames(payload.common_parent_first_names ? String(payload.common_parent_first_names) : '');
+          setRelCommonParentLastName(payload.common_parent_last_name ? String(payload.common_parent_last_name) : '');
+          setRelCommonParentGender((payload.common_parent_gender as 'M' | 'F') || 'M');
 
           if (payload.person_a_id) {
             getPersonSummaryAction(String(payload.person_a_id)).then((res) => {
@@ -429,6 +490,11 @@ function ProposerForm() {
           if (payload.parent_id) {
             getPersonSummaryAction(String(payload.parent_id)).then((res) => {
               if (isMounted && res) setParentPerson(res);
+            });
+          }
+          if (payload.sibling_id) {
+            getPersonSummaryAction(String(payload.sibling_id)).then((res) => {
+              if (isMounted && res) setSiblingPerson(res);
             });
           }
           if (payload.spouse_id) {
@@ -499,6 +565,9 @@ function ProposerForm() {
         start_date: relStartDate || null,
         start_place: relStartPlace.trim() || null,
         notes: relNotes.trim() || null,
+        common_parent_first_names: relCommonParentFirstNames.trim() || null,
+        common_parent_last_name: relCommonParentLastName.trim() || null,
+        common_parent_gender: relCommonParentGender,
       };
 
       startTransition(async () => {
@@ -553,6 +622,7 @@ function ProposerForm() {
       biography: biography.trim() || null,
       parent_id: parentPerson ? parentPerson.id : null,
       spouse_id: spousePerson ? spousePerson.id : null,
+      sibling_id: siblingPerson ? siblingPerson.id : null,
     };
 
     const targetPersonId = editProposalId
@@ -637,6 +707,7 @@ function ProposerForm() {
                 setBirthYear('');
                 setDeathYear('');
                 setParentPerson(null);
+                setSiblingPerson(null);
                 setSpousePerson(null);
                 setRelPersonA(null);
                 setRelPersonB(null);
@@ -644,6 +715,8 @@ function ProposerForm() {
                 setRelStartDate('');
                 setRelStartPlace('');
                 setRelNotes('');
+                setRelCommonParentFirstNames('');
+                setRelCommonParentLastName('');
                 setSourceTitle('');
                 setArchiveReference('');
                 setSourceUrl('');
@@ -889,14 +962,14 @@ function ProposerForm() {
                   1. Définir le lien familial entre deux personnes
                 </h2>
                 <p className="text-xs text-heritage-600 font-serif mt-1">
-                  Sélectionnez les deux fiches individuelles existantes dans l’arbre, puis indiquez leur relation de parenté ou de mariage.
+                  Sélectionnez les deux fiches individuelles existantes dans l’arbre, puis indiquez leur relation (filiation, fratrie ou mariage).
                 </p>
               </div>
 
               {/* Person A picker */}
               <PersonPicker
                 label="Personne A (Première personne) *"
-                description="Dans le cas d'une filiation, la Personne A est le parent (père ou mère)."
+                description="Sélectionnez la première personne concernée."
                 selectedPerson={relPersonA}
                 onSelect={(p) => setRelPersonA(p)}
                 onRemove={() => setRelPersonA(null)}
@@ -908,47 +981,72 @@ function ProposerForm() {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800">
                   Nature de la relation *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Filiation */}
                   <button
                     type="button"
                     onClick={() => setRelType('parent_child')}
-                    className={`p-4 rounded-xl border text-left transition-colors flex items-start space-x-3 ${
+                    className={`p-3.5 rounded-xl border text-left transition-colors flex items-start space-x-2.5 ${
                       relType === 'parent_child'
                         ? 'border-heritage-800 bg-heritage-50/80 ring-2 ring-heritage-800/20'
                         : 'border-heritage-200 hover:border-heritage-400 bg-white'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
-                      <User className="w-4 h-4" />
+                    <div className="w-7 h-7 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
+                      <User className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <p className="font-serif font-bold text-sm text-heritage-950">
-                        Filiation (Parent ➔ Enfant)
+                      <p className="font-serif font-bold text-xs sm:text-sm text-heritage-950">
+                        Filiation
                       </p>
-                      <p className="text-xs text-heritage-600 mt-0.5">
-                        La Personne A est le père ou la mère de la Personne B.
+                      <p className="text-[11px] text-heritage-600 mt-0.5">
+                        Parent ➔ Enfant
                       </p>
                     </div>
                   </button>
 
+                  {/* Frères & Sœurs */}
+                  <button
+                    type="button"
+                    onClick={() => setRelType('sibling')}
+                    className={`p-3.5 rounded-xl border text-left transition-colors flex items-start space-x-2.5 ${
+                      relType === 'sibling'
+                        ? 'border-heritage-800 bg-heritage-50/80 ring-2 ring-heritage-800/20'
+                        : 'border-heritage-200 hover:border-heritage-400 bg-white'
+                    }`}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <p className="font-serif font-bold text-xs sm:text-sm text-heritage-950">
+                        Frères & Sœurs
+                      </p>
+                      <p className="text-[11px] text-heritage-600 mt-0.5">
+                        Fratrie commune
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Conjoints */}
                   <button
                     type="button"
                     onClick={() => setRelType('spouse')}
-                    className={`p-4 rounded-xl border text-left transition-colors flex items-start space-x-3 ${
+                    className={`p-3.5 rounded-xl border text-left transition-colors flex items-start space-x-2.5 ${
                       relType === 'spouse'
                         ? 'border-heritage-800 bg-heritage-50/80 ring-2 ring-heritage-800/20'
                         : 'border-heritage-200 hover:border-heritage-400 bg-white'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
-                      <HeartHandshake className="w-4 h-4" />
+                    <div className="w-7 h-7 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
+                      <HeartHandshake className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <p className="font-serif font-bold text-sm text-heritage-950">
-                        Conjoints / Mariage
+                      <p className="font-serif font-bold text-xs sm:text-sm text-heritage-950">
+                        Conjoints
                       </p>
-                      <p className="text-xs text-heritage-600 mt-0.5">
-                        La Personne A et la Personne B sont mariées ou conjointes.
+                      <p className="text-[11px] text-heritage-600 mt-0.5">
+                        Mariage / Union
                       </p>
                     </div>
                   </button>
@@ -961,6 +1059,8 @@ function ProposerForm() {
                 description={
                   relType === 'parent_child'
                     ? "La Personne B est l'enfant de la Personne A."
+                    : relType === 'sibling'
+                    ? "La Personne B est le frère ou la sœur de la Personne A."
                     : "La Personne B est l'époux ou l'épouse de la Personne A."
                 }
                 selectedPerson={relPersonB}
@@ -969,6 +1069,83 @@ function ProposerForm() {
                 excludePersonId={relPersonA?.id}
                 placeholder="Rechercher la personne B par prénom ou nom..."
               />
+
+              {/* Sibling parent resolution helper */}
+              {relType === 'sibling' && relPersonA && relPersonB && (
+                <div className="space-y-3 pt-2">
+                  {relPersonAParents.length > 0 ? (
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start space-x-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-emerald-900">
+                          Parent commun identifié : {relPersonAParents[0].first_names} {relPersonAParents[0].last_name} ({relPersonAParents[0].gender === 'F' ? 'Mère' : 'Père'})
+                        </p>
+                        <p className="text-emerald-800 text-[11px] mt-0.5">
+                          {relPersonB.first_names} sera automatiquement rattaché(e) à ce parent pour former la fratrie dans l&apos;arbre généalogique.
+                        </p>
+                      </div>
+                    </div>
+                  ) : relPersonBParents.length > 0 ? (
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start space-x-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-emerald-900">
+                          Parent commun identifié : {relPersonBParents[0].first_names} {relPersonBParents[0].last_name} ({relPersonBParents[0].gender === 'F' ? 'Mère' : 'Père'})
+                        </p>
+                        <p className="text-emerald-800 text-[11px] mt-0.5">
+                          {relPersonA.first_names} sera automatiquement rattaché(e) à ce parent pour former la fratrie dans l&apos;arbre généalogique.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-300 text-amber-950 space-y-3">
+                      <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-amber-900">
+                        <Info className="w-4 h-4 text-amber-700 shrink-0" />
+                        <span>Création du parent commun pour l&apos;arbre</span>
+                      </div>
+                      <p className="text-xs text-amber-800 font-serif leading-relaxed">
+                        Pour que deux personnes apparaissent comme frères et sœurs dans l&apos;arbre généalogique, elles doivent partager un parent commun. Ni {relPersonA.first_names} ni {relPersonB.first_names} n&apos;ont encore de parent enregistré. Indiquez le prénom de leur père ou mère ci-dessous :
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div>
+                          <label className="block text-xs font-semibold text-amber-900 mb-1">Rôle</label>
+                          <select
+                            value={relCommonParentGender}
+                            onChange={(e) => setRelCommonParentGender(e.target.value as 'M' | 'F')}
+                            className="w-full px-3 py-1.5 rounded-lg border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-amber-500"
+                          >
+                            <option value="M">Père</option>
+                            <option value="F">Mère</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-amber-900 mb-1">Prénom du parent</label>
+                          <input
+                            type="text"
+                            value={relCommonParentFirstNames}
+                            onChange={(e) => setRelCommonParentFirstNames(e.target.value)}
+                            placeholder={relCommonParentGender === 'F' ? "Ex: Marie" : "Ex: Pierre"}
+                            className="w-full px-3 py-1.5 rounded-lg border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-amber-900 mb-1">Nom de famille</label>
+                          <input
+                            type="text"
+                            value={relCommonParentLastName}
+                            onChange={(e) => setRelCommonParentLastName(e.target.value)}
+                            placeholder="Ex: Yildiz"
+                            className="w-full px-3 py-1.5 rounded-lg border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-amber-700 italic">
+                        Ce parent sera créé lors de la validation pour relier directement la fratrie dans l&apos;arbre généalogique.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Optional details for spouse (marriage dates) */}
               {relType === 'spouse' && (
@@ -1023,7 +1200,7 @@ function ProposerForm() {
                   rows={2}
                   value={relNotes}
                   onChange={(e) => setRelNotes(e.target.value)}
-                  placeholder="Ex: Mariage religieux documenté dans le registre de la paroisse..."
+                  placeholder="Ex: Frères attestés par le recensement de 1910, ou mariage religieux documenté..."
                   className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
                 />
               </div>
@@ -1270,27 +1447,46 @@ function ProposerForm() {
                   <span className="text-xs text-heritage-500 font-medium">Optionnel</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   {/* Parent picker */}
                   <PersonPicker
                     label="Père ou Mère"
-                    description="Sélectionnez un parent existant. Le lien de filiation sera créé automatiquement à la validation."
+                    description="Le lien de filiation sera créé automatiquement."
                     selectedPerson={parentPerson}
                     onSelect={(p) => setParentPerson(p)}
                     onRemove={() => setParentPerson(null)}
-                    placeholder="Rechercher le père ou la mère..."
+                    placeholder="Rechercher père ou mère..."
+                  />
+
+                  {/* Sibling picker */}
+                  <PersonPicker
+                    label="Frère ou Sœur"
+                    description="Rattache la personne à la même fratrie."
+                    selectedPerson={siblingPerson}
+                    onSelect={(p) => setSiblingPerson(p)}
+                    onRemove={() => setSiblingPerson(null)}
+                    placeholder="Rechercher frère ou sœur..."
                   />
 
                   {/* Spouse picker */}
                   <PersonPicker
                     label="Époux ou Épouse"
-                    description="Sélectionnez son conjoint. Le lien de mariage sera créé automatiquement à la validation."
+                    description="Le lien de mariage sera créé automatiquement."
                     selectedPerson={spousePerson}
                     onSelect={(p) => setSpousePerson(p)}
                     onRemove={() => setSpousePerson(null)}
-                    placeholder="Rechercher le conjoint..."
+                    placeholder="Rechercher conjoint(e)..."
                   />
                 </div>
+
+                {siblingPerson && siblingDetectedParents.length > 0 && (
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>
+                      Parent commun associé : <strong>{siblingDetectedParents[0].first_names} {siblingDetectedParents[0].last_name}</strong> (père/mère de {siblingPerson.first_names}).
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </>

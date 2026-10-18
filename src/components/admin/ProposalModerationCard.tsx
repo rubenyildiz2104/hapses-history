@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
-  HeartHandshake
+  HeartHandshake,
+  Users
 } from 'lucide-react';
 import { reviewProposalAction } from '@/app/actions/moderation';
 import { ProposalType, DatePrecision, LifeStatus } from '@/lib/types/database';
@@ -44,6 +45,7 @@ export interface ModerationProposal {
   person_b?: Record<string, unknown> | null;
   parent_person?: Record<string, unknown> | null;
   spouse_person?: Record<string, unknown> | null;
+  sibling_person?: Record<string, unknown> | null;
   payload: Record<string, unknown>;
   sources_info: Record<string, unknown> | null;
   status: string;
@@ -226,6 +228,14 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
                           <span className="text-xs font-bold text-heritage-900 uppercase">Est le parent de</span>
                           <span className="text-[11px] text-heritage-600 font-medium">➔ Filiation</span>
                         </>
+                      ) : payload.relationship_type === 'sibling' ? (
+                        <>
+                          <span className="text-xs font-bold text-heritage-900 uppercase flex items-center justify-center">
+                            <Users className="w-3.5 h-3.5 mr-1 inline" />
+                            <span>Frères & Sœurs</span>
+                          </span>
+                          <span className="text-[11px] text-heritage-600 font-medium">👥 Fratrie</span>
+                        </>
                       ) : (
                         <>
                           <span className="text-xs font-bold text-heritage-900 uppercase">Époux / Épouse de</span>
@@ -266,6 +276,18 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
                         {payload.start_year ? `Année : ${String(payload.start_year)}` : ''}
                         {payload.start_date ? ` (le ${String(payload.start_date)})` : ''}
                         {payload.start_place ? ` à ${String(payload.start_place)}` : ''}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Sibling details if applicable */}
+                  {payload.relationship_type === 'sibling' && (
+                    <div className="p-3 rounded-lg bg-white border border-heritage-200 text-xs text-heritage-800 space-y-1">
+                      <span className="font-semibold block text-heritage-700">Filiation fraternelle</span>
+                      <p className="text-heritage-600">
+                        {payload.common_parent_first_names
+                          ? `Parent commun : ${String(payload.common_parent_first_names)} ${String(payload.common_parent_last_name || '')} (${payload.common_parent_gender === 'F' ? 'Mère' : 'Père'})`
+                          : 'Rattachement automatique aux parents existants ou création automatique d\'un parent commun.'}
                       </p>
                     </div>
                   )}
@@ -424,7 +446,7 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
                 </div>
 
                 {/* Optional family linkages to create with this person */}
-                {(Boolean(proposal.parent_person) || Boolean(proposal.spouse_person)) && (
+                {(Boolean(proposal.parent_person) || Boolean(proposal.spouse_person) || Boolean(proposal.sibling_person)) && (
                   <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
                     <span className="font-semibold text-emerald-900 uppercase text-[11px] block">
                       Liens familiaux créés automatiquement à l&apos;approbation :
@@ -438,6 +460,23 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
                         )}
                         <Link
                           href={`/genealogie/${String(proposal.parent_person.id)}`}
+                          target="_blank"
+                          className="text-emerald-800 underline hover:text-emerald-950 inline-flex items-center space-x-0.5 ml-2 font-medium"
+                        >
+                          <span>Fiche</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    )}
+                    {proposal.sibling_person && (
+                      <div className="flex items-center space-x-2 text-emerald-900">
+                        <span>👥 <strong>Frère / Sœur :</strong></span>
+                        <span>{String(proposal.sibling_person.first_names)} {String(proposal.sibling_person.last_name)}</span>
+                        {Boolean(proposal.sibling_person.birth_year) && (
+                          <span className="text-emerald-700">(° {String(proposal.sibling_person.birth_year)})</span>
+                        )}
+                        <Link
+                          href={`/genealogie/${String(proposal.sibling_person.id)}`}
                           target="_blank"
                           className="text-emerald-800 underline hover:text-emerald-950 inline-flex items-center space-x-0.5 ml-2 font-medium"
                         >

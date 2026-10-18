@@ -44,6 +44,8 @@ export interface ModerationProposal {
   person_a?: Record<string, unknown> | null;
   person_b?: Record<string, unknown> | null;
   parent_person?: Record<string, unknown> | null;
+  parent_2_person?: Record<string, unknown> | null;
+  second_parent_person?: Record<string, unknown> | null;
   spouse_person?: Record<string, unknown> | null;
   sibling_person?: Record<string, unknown> | null;
   payload: Record<string, unknown>;
@@ -280,6 +282,24 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
                     </div>
                   )}
 
+                  {/* Second parent if applicable in parent_child */}
+                  {payload.relationship_type === 'parent_child' && (Boolean(proposal.second_parent_person) || Boolean(payload.second_parent_id)) && (
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start space-x-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold block text-emerald-900">Second parent inclus :</span>
+                        <p className="text-emerald-800">
+                          {proposal.second_parent_person
+                            ? `${String(proposal.second_parent_person.first_names)} ${String(proposal.second_parent_person.last_name)} (${proposal.second_parent_person.gender === 'F' ? 'Mère' : 'Père'})`
+                            : String(payload.second_parent_id)}
+                        </p>
+                        <p className="text-[11px] text-emerald-700 mt-0.5">
+                          Ce second parent sera également relié à l&apos;enfant lors de l&apos;approbation.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Sibling details if applicable */}
                   {payload.relationship_type === 'sibling' && (
                     <div className="p-3 rounded-lg bg-white border border-heritage-200 text-xs text-heritage-800 space-y-1">
@@ -446,20 +466,37 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
                 </div>
 
                 {/* Optional family linkages to create with this person */}
-                {(Boolean(proposal.parent_person) || Boolean(proposal.spouse_person) || Boolean(proposal.sibling_person)) && (
+                {(Boolean(proposal.parent_person) || Boolean(proposal.parent_2_person) || Boolean(proposal.spouse_person) || Boolean(proposal.sibling_person)) && (
                   <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
                     <span className="font-semibold text-emerald-900 uppercase text-[11px] block">
                       Liens familiaux créés automatiquement à l&apos;approbation :
                     </span>
                     {proposal.parent_person && (
                       <div className="flex items-center space-x-2 text-emerald-900">
-                        <span>👪 <strong>Parent :</strong></span>
+                        <span>👪 <strong>Premier parent :</strong></span>
                         <span>{String(proposal.parent_person.first_names)} {String(proposal.parent_person.last_name)}</span>
                         {Boolean(proposal.parent_person.birth_year) && (
                           <span className="text-emerald-700">(° {String(proposal.parent_person.birth_year)})</span>
                         )}
                         <Link
                           href={`/genealogie/${String(proposal.parent_person.id)}`}
+                          target="_blank"
+                          className="text-emerald-800 underline hover:text-emerald-950 inline-flex items-center space-x-0.5 ml-2 font-medium"
+                        >
+                          <span>Fiche</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    )}
+                    {proposal.parent_2_person && (
+                      <div className="flex items-center space-x-2 text-emerald-900">
+                        <span>👪 <strong>Second parent :</strong></span>
+                        <span>{String(proposal.parent_2_person.first_names)} {String(proposal.parent_2_person.last_name)}</span>
+                        {Boolean(proposal.parent_2_person.birth_year) && (
+                          <span className="text-emerald-700">(° {String(proposal.parent_2_person.birth_year)})</span>
+                        )}
+                        <Link
+                          href={`/genealogie/${String(proposal.parent_2_person.id)}`}
                           target="_blank"
                           className="text-emerald-800 underline hover:text-emerald-950 inline-flex items-center space-x-0.5 ml-2 font-medium"
                         >

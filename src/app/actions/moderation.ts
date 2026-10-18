@@ -254,6 +254,28 @@ export async function reviewProposalAction(
         }
       }
 
+      // Handle Second Parent link
+      if (pPayload.parent_2_id && typeof pPayload.parent_2_id === 'string' && pPayload.parent_2_id.trim()) {
+        const parent2Id = pPayload.parent_2_id.trim();
+        const { data: existingRel2 } = await adminClient
+          .from('relationships')
+          .select('id')
+          .eq('relationship_type', 'parent_child')
+          .eq('person_a_id', parent2Id)
+          .eq('person_b_id', newPersonId)
+          .is('archived_at', null)
+          .maybeSingle();
+
+        if (!existingRel2) {
+          await adminClient.from('relationships').insert({
+            relationship_type: 'parent_child',
+            person_a_id: parent2Id,
+            person_b_id: newPersonId,
+            created_by: updatedProposal.submitted_by,
+          });
+        }
+      }
+
       // Handle Sibling link
       if (pPayload.sibling_id && typeof pPayload.sibling_id === 'string' && pPayload.sibling_id.trim()) {
         const siblingId = pPayload.sibling_id.trim();
@@ -341,6 +363,33 @@ export async function reviewProposalAction(
             person_b_id: spouseId,
             created_by: updatedProposal.submitted_by,
           });
+        }
+      }
+    }
+
+    if (updatedProposal && updatedProposal.proposal_type === 'add_relationship') {
+      const rPayload = (updatedProposal.payload || {}) as Record<string, unknown>;
+      if (rPayload.relationship_type === 'parent_child' && rPayload.second_parent_id && typeof rPayload.second_parent_id === 'string') {
+        const secondParentId = rPayload.second_parent_id.trim();
+        const childId = rPayload.person_b_id ? String(rPayload.person_b_id).trim() : null;
+        if (secondParentId && childId) {
+          const { data: existingRel } = await adminClient
+            .from('relationships')
+            .select('id')
+            .eq('relationship_type', 'parent_child')
+            .eq('person_a_id', secondParentId)
+            .eq('person_b_id', childId)
+            .is('archived_at', null)
+            .maybeSingle();
+
+          if (!existingRel) {
+            await adminClient.from('relationships').insert({
+              relationship_type: 'parent_child',
+              person_a_id: secondParentId,
+              person_b_id: childId,
+              created_by: updatedProposal.submitted_by,
+            });
+          }
         }
       }
     }

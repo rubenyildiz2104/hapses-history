@@ -57,9 +57,11 @@ export default async function AdminModerationPage(props: PageProps) {
       if (p.proposal_type === 'add_relationship') {
         if (payload.person_a_id) ids.push(String(payload.person_a_id));
         if (payload.person_b_id) ids.push(String(payload.person_b_id));
+        if (payload.second_parent_id) ids.push(String(payload.second_parent_id));
       }
       if (p.proposal_type === 'add_person') {
         if (payload.parent_id) ids.push(String(payload.parent_id));
+        if (payload.parent_2_id) ids.push(String(payload.parent_2_id));
         if (payload.spouse_id) ids.push(String(payload.spouse_id));
         if (payload.sibling_id) ids.push(String(payload.sibling_id));
       }
@@ -120,7 +122,9 @@ export default async function AdminModerationPage(props: PageProps) {
         target_person: p.target_person_id ? targetPersonsMap.get(p.target_person_id) : null,
         person_a: pPayload.person_a_id ? targetPersonsMap.get(String(pPayload.person_a_id)) : null,
         person_b: pPayload.person_b_id ? targetPersonsMap.get(String(pPayload.person_b_id)) : null,
+        second_parent_person: pPayload.second_parent_id ? targetPersonsMap.get(String(pPayload.second_parent_id)) : null,
         parent_person: pPayload.parent_id ? targetPersonsMap.get(String(pPayload.parent_id)) : null,
+        parent_2_person: pPayload.parent_2_id ? targetPersonsMap.get(String(pPayload.parent_2_id)) : null,
         spouse_person: pPayload.spouse_id ? targetPersonsMap.get(String(pPayload.spouse_id)) : null,
         sibling_person: pPayload.sibling_id ? targetPersonsMap.get(String(pPayload.sibling_id)) : null,
         payload: pPayload,

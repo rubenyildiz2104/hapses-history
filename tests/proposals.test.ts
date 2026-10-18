@@ -193,5 +193,44 @@ describe('Proposal Submission & Editing Validation', () => {
     const res = SubmitProposalSchema.safeParse(newPersonWithSibling);
     expect(res.success).toBe(true);
   });
+
+  it('validates an add_relationship proposal (parent_child) linking both parents simultaneously via second_parent_id', () => {
+    const dualParentProposal = {
+      proposal_type: 'add_relationship',
+      payload: {
+        relationship_type: 'parent_child',
+        person_a_id: '11111111-1111-4111-8111-111111111111', // Father: Gevriye
+        person_b_id: '22222222-2222-4222-8222-222222222222', // Child: Ruben
+        second_parent_id: '33333333-3333-4333-8333-333333333333', // Mother: Behiye
+        notes: 'Filiation père et mère simultanée',
+      },
+      sources_info: {
+        title: 'Livret de famille',
+      },
+    };
+
+    const res = SubmitProposalSchema.safeParse(dualParentProposal);
+    expect(res.success).toBe(true);
+  });
+
+  it('validates an add_person proposal with both parent_id and parent_2_id', () => {
+    const newPersonDualParents = {
+      proposal_type: 'add_person',
+      payload: {
+        first_names: 'Gabriel',
+        last_name: 'YILDIZ',
+        gender: 'M',
+        birth_year: 1965,
+        life_status: 'deceased',
+        parent_id: '11111111-1111-4111-8111-111111111111',
+        parent_2_id: '33333333-3333-4333-8333-333333333333',
+        visibility: 'public',
+      },
+    };
+
+    const res = SubmitProposalSchema.safeParse(newPersonDualParents);
+    expect(res.success).toBe(true);
+  });
 });
+
 

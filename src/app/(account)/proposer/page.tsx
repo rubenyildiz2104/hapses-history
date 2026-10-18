@@ -9,7 +9,8 @@ import {
   getPersonForCorrectionAction,
   searchPersonsForCorrectionAction,
   getPersonSummaryAction,
-  getPersonParentsAction
+  getPersonParentsAction,
+  getPersonSpousesAction
 } from '@/app/actions/proposals';
 import { ProposalType, DatePrecision, LifeStatus } from '@/lib/types/database';
 import { 
@@ -25,7 +26,8 @@ import {
   Search,
   ArrowRight,
   X,
-  Users
+  Users,
+  Plus
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -234,6 +236,8 @@ function ProposerForm() {
 
   // Optional family link when adding a new person (add_person)
   const [parentPerson, setParentPerson] = useState<PersonSummary | null>(null);
+  const [parent2Person, setParent2Person] = useState<PersonSummary | null>(null);
+  const [parentAutoSpouse, setParentAutoSpouse] = useState<PersonSummary | null>(null);
   const [spousePerson, setSpousePerson] = useState<PersonSummary | null>(null);
   const [siblingPerson, setSiblingPerson] = useState<PersonSummary | null>(null);
   const [siblingDetectedParents, setSiblingDetectedParents] = useState<PersonSummary[]>([]);
@@ -242,6 +246,9 @@ function ProposerForm() {
   const [relType, setRelType] = useState<'parent_child' | 'spouse' | 'sibling'>('parent_child');
   const [relPersonA, setRelPersonA] = useState<PersonSummary | null>(null);
   const [relPersonB, setRelPersonB] = useState<PersonSummary | null>(null);
+  const [relSecondParent, setRelSecondParent] = useState<PersonSummary | null>(null);
+  const [alsoLinkSecondParent, setAlsoLinkSecondParent] = useState<boolean>(true);
+  const [isSecondParentAutoSpouse, setIsSecondParentAutoSpouse] = useState<boolean>(false);
   const [relStartYear, setRelStartYear] = useState('');
   const [relStartDate, setRelStartDate] = useState('');
   const [relStartPlace, setRelStartPlace] = useState('');
@@ -401,6 +408,51 @@ function ProposerForm() {
     return () => { isMounted = false; };
   }, [siblingPerson, parentPerson]);
 
+  // Detect spouse of parentPerson in add_person to automatically suggest as second parent
+  useEffect(() => {
+    if (!parentPerson) {
+      setParentAutoSpouse(null);
+      return;
+    }
+    let isMounted = true;
+    getPersonSpousesAction(parentPerson.id).then((spouses) => {
+      if (!isMounted) return;
+      if (spouses && spouses.length > 0) {
+        const sp = spouses[0];
+        setParentAutoSpouse(sp);
+        setParent2Person((current) => current || sp);
+      } else {
+        setParentAutoSpouse(null);
+      }
+    });
+    return () => { isMounted = false; };
+  }, [parentPerson]);
+
+  // Detect spouse of relPersonA in add_relationship when relType is parent_child
+  useEffect(() => {
+    if (relType !== 'parent_child' || !relPersonA) {
+      if (relType !== 'parent_child') {
+        setRelSecondParent(null);
+        setAlsoLinkSecondParent(false);
+        setIsSecondParentAutoSpouse(false);
+      }
+      return;
+    }
+    let isMounted = true;
+    getPersonSpousesAction(relPersonA.id).then((spouses) => {
+      if (!isMounted) return;
+      if (spouses && spouses.length > 0) {
+        const sp = spouses[0];
+        setRelSecondParent(sp);
+        setAlsoLinkSecondParent(true);
+        setIsSecondParentAutoSpouse(true);
+      } else {
+        setIsSecondParentAutoSpouse(false);
+      }
+    });
+    return () => { isMounted = false; };
+  }, [relType, relPersonA]);
+
   async function handleSearchPersons(query: string) {
     setSearchQuery(query);
     if (query.trim().length < 2) {
@@ -464,6 +516,14 @@ function ProposerForm() {
               if (isMounted && res) setRelPersonB(res);
             });
           }
+          if (payload.second_parent_id) {
+            getPersonSummaryAction(String(payload.second_parent_id)).then((res) => {
+              if (isMounted && res) {
+                setRelSecondParent(res);
+                setAlsoLinkSecondParent(true);
+              }
+            });
+          }
         } else {
           setFirstNames(payload.first_names ? String(payload.first_names) : '');
           setLastName(payload.last_name ? String(payload.last_name) : '');
@@ -490,6 +550,11 @@ function ProposerForm() {
           if (payload.parent_id) {
             getPersonSummaryAction(String(payload.parent_id)).then((res) => {
               if (isMounted && res) setParentPerson(res);
+            });
+          }
+          if (payload.parent_2_id) {
+            getPersonSummaryAction(String(payload.parent_2_id)).then((res) => {
+              if (isMounted && res) setParent2Person(res);
             });
           }
           if (payload.sibling_id) {
@@ -561,6 +626,7 @@ function ProposerForm() {
         relationship_type: relType,
         person_a_id: relPersonA.id,
         person_b_id: relPersonB.id,
+        second_parent_id: (relType === 'parent_child' && alsoLinkSecondParent && relSecondParent) ? relSecondParent.id : null,
         start_year: relStartYear ? parseInt(relStartYear, 10) : null,
         start_date: relStartDate || null,
         start_place: relStartPlace.trim() || null,
@@ -621,6 +687,7 @@ function ProposerForm() {
       profession: profession.trim() || null,
       biography: biography.trim() || null,
       parent_id: parentPerson ? parentPerson.id : null,
+      parent_2_id: parent2Person ? parent2Person.id : null,
       spouse_id: spousePerson ? spousePerson.id : null,
       sibling_id: siblingPerson ? siblingPerson.id : null,
     };
@@ -968,11 +1035,26 @@ function ProposerForm() {
 
               {/* Person A picker */}
               <PersonPicker
-                label="Personne A (Première personne) *"
-                description="Sélectionnez la première personne concernée."
+                label={
+                  relType === 'parent_child'
+                    ? "Personne A : Parent (Père ou Mère) *"
+                    : relType === 'sibling'
+                    ? "Personne A : Frère ou Sœur *"
+                    : "Personne A : Premier Conjoint *"
+                }
+                description={
+                  relType === 'parent_child'
+                    ? "Sélectionnez le parent (père ou mère)."
+                    : "Sélectionnez la première personne concernée."
+                }
                 selectedPerson={relPersonA}
                 onSelect={(p) => setRelPersonA(p)}
-                onRemove={() => setRelPersonA(null)}
+                onRemove={() => {
+                  setRelPersonA(null);
+                  setRelSecondParent(null);
+                  setAlsoLinkSecondParent(false);
+                  setIsSecondParentAutoSpouse(false);
+                }}
                 placeholder="Rechercher la personne A par prénom ou nom..."
               />
 
@@ -1055,7 +1137,13 @@ function ProposerForm() {
 
               {/* Person B picker */}
               <PersonPicker
-                label="Personne B (Seconde personne) *"
+                label={
+                  relType === 'parent_child'
+                    ? "Personne B : Enfant *"
+                    : relType === 'sibling'
+                    ? "Personne B : Frère ou Sœur *"
+                    : "Personne B : Second Conjoint *"
+                }
                 description={
                   relType === 'parent_child'
                     ? "La Personne B est l'enfant de la Personne A."
@@ -1069,6 +1157,92 @@ function ProposerForm() {
                 excludePersonId={relPersonA?.id}
                 placeholder="Rechercher la personne B par prénom ou nom..."
               />
+
+              {/* Second parent section for parent_child */}
+              {relType === 'parent_child' && relPersonA && (
+                <div className="space-y-3 pt-2">
+                  {relSecondParent && isSecondParentAutoSpouse ? (
+                    <div className="p-4 rounded-xl bg-purple-50/90 border border-purple-200 text-xs text-purple-950 space-y-3 shadow-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-purple-200/70">
+                        <div className="flex items-center space-x-2">
+                          <HeartHandshake className="w-4 h-4 text-purple-700 shrink-0" />
+                          <span className="font-serif font-bold text-sm text-purple-950">
+                            Conjoint(e) marié(e) détecté(e) : {relSecondParent.first_names} {relSecondParent.last_name}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-purple-700 bg-purple-100/80 px-2.5 py-0.5 rounded-full w-fit">
+                          {relSecondParent.gender === 'F' ? 'Épouse ➔ Mère' : 'Époux ➔ Père'}
+                        </span>
+                      </div>
+
+                      <label className="flex items-start space-x-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={alsoLinkSecondParent}
+                          onChange={(e) => setAlsoLinkSecondParent(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 rounded border-purple-300 text-heritage-800 focus:ring-heritage-600 cursor-pointer"
+                        />
+                        <div>
+                          <p className="font-semibold text-purple-900 text-xs sm:text-sm">
+                            Ajouter simultanément {relSecondParent.first_names} {relSecondParent.last_name} comme second parent ({relSecondParent.gender === 'F' ? 'Mère' : 'Père'})
+                          </p>
+                          <p className="text-[11px] text-purple-700 mt-0.5">
+                            {alsoLinkSecondParent
+                              ? `Les deux parents (${relPersonA.first_names} et ${relSecondParent.first_names}) seront rattachés à l'enfant en une seule validation.`
+                              : `Seul(e) ${relPersonA.first_names} sera rattaché(e) comme parent.`}
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {!alsoLinkSecondParent && !relSecondParent ? (
+                        <button
+                          type="button"
+                          onClick={() => setAlsoLinkSecondParent(true)}
+                          className="inline-flex items-center space-x-2 text-xs font-semibold text-heritage-700 hover:text-heritage-950 px-3.5 py-2 rounded-lg border border-dashed border-heritage-300 hover:border-heritage-500 bg-heritage-50/50 transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-heritage-600" />
+                          <span>Ajouter également le second parent (Mère ou Père)</span>
+                        </button>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-heritage-50/70 border border-heritage-200 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-heritage-800">
+                              Second parent (Optionnel)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRelSecondParent(null);
+                                setAlsoLinkSecondParent(false);
+                              }}
+                              className="text-xs text-red-600 hover:text-red-800 hover:underline font-medium"
+                            >
+                              Ne pas associer de second parent
+                            </button>
+                          </div>
+                          <PersonPicker
+                            label="Second parent (Mère ou Père)"
+                            description="Sélectionnez le second parent de l'enfant pour relier les deux en même temps."
+                            selectedPerson={relSecondParent}
+                            onSelect={(p) => {
+                              setRelSecondParent(p);
+                              setAlsoLinkSecondParent(true);
+                              setIsSecondParentAutoSpouse(false);
+                            }}
+                            onRemove={() => {
+                              setRelSecondParent(null);
+                            }}
+                            excludePersonId={relPersonA.id}
+                            placeholder="Rechercher le second parent par prénom ou nom..."
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Sibling parent resolution helper */}
               {relType === 'sibling' && relPersonA && relPersonB && (
@@ -1447,15 +1621,29 @@ function ProposerForm() {
                   <span className="text-xs text-heritage-500 font-medium">Optionnel</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* Parent picker */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Premier Parent picker */}
                   <PersonPicker
-                    label="Père ou Mère"
+                    label="Premier parent (Père ou Mère)"
                     description="Le lien de filiation sera créé automatiquement."
                     selectedPerson={parentPerson}
                     onSelect={(p) => setParentPerson(p)}
-                    onRemove={() => setParentPerson(null)}
+                    onRemove={() => {
+                      setParentPerson(null);
+                      setParentAutoSpouse(null);
+                    }}
                     placeholder="Rechercher père ou mère..."
+                  />
+
+                  {/* Second Parent picker */}
+                  <PersonPicker
+                    label="Second parent (Mère ou Père)"
+                    description="Permet d'ajouter les deux parents simultanément."
+                    selectedPerson={parent2Person}
+                    onSelect={(p) => setParent2Person(p)}
+                    onRemove={() => setParent2Person(null)}
+                    excludePersonId={parentPerson?.id}
+                    placeholder="Rechercher second parent..."
                   />
 
                   {/* Sibling picker */}
@@ -1478,6 +1666,17 @@ function ProposerForm() {
                     placeholder="Rechercher conjoint(e)..."
                   />
                 </div>
+
+                {parentPerson && parentAutoSpouse && parent2Person?.id === parentAutoSpouse.id && (
+                  <div className="p-3 rounded-xl bg-purple-50/90 border border-purple-200 text-xs text-purple-950 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <HeartHandshake className="w-4 h-4 text-purple-700 shrink-0" />
+                      <span>
+                        Conjoint(e) détecté(e) : <strong>{parentAutoSpouse.first_names} {parentAutoSpouse.last_name}</strong> ({parentAutoSpouse.gender === 'F' ? 'épouse' : 'époux'} de {parentPerson.first_names}). Pré-rempli(e) automatiquement comme second parent.
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {siblingPerson && siblingDetectedParents.length > 0 && (
                   <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center space-x-2">

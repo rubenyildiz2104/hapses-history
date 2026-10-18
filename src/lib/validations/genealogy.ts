@@ -38,6 +38,7 @@ export const PersonBaseSchema = z.object({
   notes: z.string().max(5000).nullable().optional(),
 
   parent_id: z.string().uuid('ID de parent invalide').nullable().optional().or(z.literal('')),
+  parent_2_id: z.string().uuid('ID de second parent invalide').nullable().optional().or(z.literal('')),
   spouse_id: z.string().uuid('ID de conjoint invalide').nullable().optional().or(z.literal('')),
   sibling_id: z.string().uuid('ID de frère ou sœur invalide').nullable().optional().or(z.literal('')),
   common_parent_first_names: z.string().max(150).nullable().optional(),
@@ -77,6 +78,8 @@ export const RelationshipSchema = z.object({
   relationship_type: z.enum(['parent_child', 'spouse', 'sibling']),
   person_a_id: z.string().uuid('ID de personne A invalide'),
   person_b_id: z.string().uuid('ID de personne B invalide'),
+
+  second_parent_id: z.string().uuid('ID de second parent invalide').nullable().optional().or(z.literal('')),
 
   common_parent_first_names: z.string().max(150).nullable().optional(),
   common_parent_last_name: z.string().max(150).nullable().optional(),

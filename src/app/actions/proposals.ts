@@ -168,6 +168,51 @@ export async function getPersonParentsAction(personId: string) {
     } => Boolean(p));
 }
 
+export async function getPersonSpousesAction(personId: string) {
+  if (!personId) return [];
+  const adminClient = createAdminClient();
+  const { data: rels } = await adminClient
+    .from('relationships')
+    .select(`
+      person_a_id,
+      person_b_id,
+      person_a:persons!relationships_person_a_id_fkey(
+        id,
+        first_names,
+        last_name,
+        birth_year,
+        death_year,
+        profession,
+        gender
+      ),
+      person_b:persons!relationships_person_b_id_fkey(
+        id,
+        first_names,
+        last_name,
+        birth_year,
+        death_year,
+        profession,
+        gender
+      )
+    `)
+    .eq('relationship_type', 'spouse')
+    .or(`person_a_id.eq.${personId},person_b_id.eq.${personId}`)
+    .is('archived_at', null);
+
+  if (!rels) return [];
+  return rels
+    .map((r: any) => (r.person_a_id === personId ? r.person_b : r.person_a))
+    .filter((p: any): p is {
+      id: string;
+      first_names: string;
+      last_name: string;
+      birth_year: number | null;
+      death_year: number | null;
+      profession: string | null;
+      gender: string | null;
+    } => Boolean(p && p.id));
+}
+
 export async function searchPersonsForCorrectionAction(searchQuery: string) {
   if (!searchQuery || searchQuery.trim().length < 2) return [];
 

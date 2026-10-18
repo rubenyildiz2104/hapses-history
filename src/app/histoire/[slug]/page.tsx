@@ -137,6 +137,22 @@ export default async function HistoireArticlePage(props: PageProps) {
             {article.summary}
           </p>
         )}
+
+        {article.featured_image_url && (
+          <figure className="rounded-2xl overflow-hidden border border-heritage-200 bg-heritage-100 my-6 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={article.featured_image_url}
+              alt={article.title}
+              className="w-full max-h-[480px] object-cover"
+            />
+            {article.featured_image_credit && (
+              <figcaption className="p-3 text-right text-xs text-heritage-600 bg-heritage-50/90 border-t border-heritage-200 italic">
+                {article.featured_image_credit}
+              </figcaption>
+            )}
+          </figure>
+        )}
       </header>
 
       {/* Main text content */}

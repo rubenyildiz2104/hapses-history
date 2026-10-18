@@ -14,6 +14,7 @@ import {
   Lock,
   Globe,
 } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { upsertSourceAction, deleteSourceAction } from '@/app/actions/sources';
 import { Source, Person } from '@/lib/types/database';
 
@@ -42,6 +43,7 @@ export function SourceEditorForm({
     initialSource?.archive_reference || ''
   );
   const [url, setUrl] = useState(initialSource?.url || '');
+  const [documentImageUrl, setDocumentImageUrl] = useState(initialSource?.document_image_url || '');
   const [description, setDescription] = useState(initialSource?.description || '');
   const [privateNotes, setPrivateNotes] = useState(initialSource?.private_notes || '');
   const [isPublic, setIsPublic] = useState(initialSource ? initialSource.is_public : true);
@@ -81,6 +83,7 @@ export function SourceEditorForm({
         source_date: sourceDate.trim() || null,
         archive_reference: archiveReference.trim() || null,
         url: url.trim() || null,
+        document_image_url: documentImageUrl.trim() || null,
         description: description.trim() || null,
         private_notes: privateNotes.trim() || null,
         is_public: isPublic,
@@ -264,7 +267,7 @@ export function SourceEditorForm({
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-700 mb-1">
-                Lien web vers l&apos;archive numérisée (facultatif)
+                Lien web externe vers l&apos;archive numérisée (facultatif)
               </label>
               <input
                 type="url"
@@ -272,6 +275,16 @@ export function SourceEditorForm({
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://..."
                 className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:outline-none focus:ring-2 focus:ring-heritage-500"
+              />
+            </div>
+
+            <div className="pt-2 border-t border-heritage-100">
+              <ImageUpload
+                value={documentImageUrl}
+                onChange={(newUrl) => setDocumentImageUrl(newUrl || '')}
+                folder="sources"
+                label="Fac-similé ou photographie de l'acte d'archive (Supabase Storage)"
+                helperText="Téléversez le document numérisé ou la photo de l'acte (JPG, PNG, WebP, PDF max 10 Mo)."
               />
             </div>
           </div>

@@ -315,3 +315,199 @@ export async function getPersonWithFamily(id: string): Promise<FamilyEntourage |
     relatedArticles,
   };
 }
+
+export interface VisualFamilyTreeData {
+  focusPerson: Person;
+  paternalGrandparents: Person[];
+  maternalGrandparents: Person[];
+  parents: Person[];
+  spouses: Array<{ person: Person; relationship: Relationship }>;
+  children: Array<{ person: Person; grandchildren: Person[] }>;
+  siblings: Person[];
+}
+
+/**
+ * Retrieves multi-generational pedigree tree data (grandparents, parents, spouses, children, grandchildren)
+ * with strict privacy filter (only deceased public persons).
+ */
+export async function getVisualFamilyTree(id: string): Promise<VisualFamilyTreeData | null> {
+  const supabase = await createServerSupabaseClient();
+
+  // 1. Fetch focus person
+  const { data: focusPersonData } = await supabase
+    .from('persons')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (!focusPersonData || !isPersonPublic(focusPersonData as Person)) {
+    return null;
+  }
+
+  const focusPerson = focusPersonData as Person;
+
+  // 2. Parents of focus person
+  const { data: parentRelations } = await supabase
+    .from('relationships')
+    .select(`
+      id,
+      parent:persons!relationships_person_a_id_fkey (*)
+    `)
+    .eq('person_b_id', id)
+    .eq('relationship_type', 'parent_child')
+    .is('archived_at', null);
+
+  const parents: Person[] = [];
+  let father: Person | null = null;
+  let mother: Person | null = null;
+
+  if (parentRelations) {
+    for (const rel of parentRelations as any[]) {
+      if (rel.parent && isPersonPublic(rel.parent)) {
+        parents.push(rel.parent);
+        if (rel.parent.gender === 'M' && !father) father = rel.parent;
+        else if (rel.parent.gender === 'F' && !mother) mother = rel.parent;
+      }
+    }
+  }
+
+  // 3. Grandparents
+  const paternalGrandparents: Person[] = [];
+  const maternalGrandparents: Person[] = [];
+
+  if (father) {
+    const { data: pgData } = await supabase
+      .from('relationships')
+      .select('parent:persons!relationships_person_a_id_fkey (*)')
+      .eq('person_b_id', father.id)
+      .eq('relationship_type', 'parent_child')
+      .is('archived_at', null);
+
+    if (pgData) {
+      for (const rel of pgData as any[]) {
+        if (rel.parent && isPersonPublic(rel.parent)) {
+          paternalGrandparents.push(rel.parent);
+        }
+      }
+    }
+  }
+
+  if (mother) {
+    const { data: mgData } = await supabase
+      .from('relationships')
+      .select('parent:persons!relationships_person_a_id_fkey (*)')
+      .eq('person_b_id', mother.id)
+      .eq('relationship_type', 'parent_child')
+      .is('archived_at', null);
+
+    if (mgData) {
+      for (const rel of mgData as any[]) {
+        if (rel.parent && isPersonPublic(rel.parent)) {
+          maternalGrandparents.push(rel.parent);
+        }
+      }
+    }
+  }
+
+  // 4. Spouses
+  const { data: spouseRelations } = await supabase
+    .from('relationships')
+    .select(`
+      *,
+      person_a:persons!relationships_person_a_id_fkey (*),
+      person_b:persons!relationships_person_b_id_fkey (*)
+    `)
+    .eq('relationship_type', 'spouse')
+    .or(`person_a_id.eq.${id},person_b_id.eq.${id}`)
+    .is('archived_at', null);
+
+  const spouses: Array<{ person: Person; relationship: Relationship }> = [];
+  if (spouseRelations) {
+    for (const rel of spouseRelations as any[]) {
+      const spousePerson = rel.person_a_id === id ? rel.person_b : rel.person_a;
+      if (spousePerson && isPersonPublic(spousePerson)) {
+        spouses.push({ person: spousePerson, relationship: rel });
+      }
+    }
+  }
+
+  // 5. Siblings (children of same parents, excluding focusPerson)
+  const siblings: Person[] = [];
+  const parentIds = parents.map((p) => p.id);
+  if (parentIds.length > 0) {
+    const { data: sibData } = await supabase
+      .from('relationships')
+      .select('child:persons!relationships_person_b_id_fkey (*)')
+      .in('person_a_id', parentIds)
+      .eq('relationship_type', 'parent_child')
+      .neq('person_b_id', id)
+      .is('archived_at', null);
+
+    if (sibData) {
+      const seenSibIds = new Set<string>();
+      for (const rel of sibData as any[]) {
+        if (rel.child && isPersonPublic(rel.child) && !seenSibIds.has(rel.child.id)) {
+          seenSibIds.add(rel.child.id);
+          siblings.push(rel.child);
+        }
+      }
+    }
+  }
+
+  // 6. Children & Grandchildren
+  const { data: childRelations } = await supabase
+    .from('relationships')
+    .select(`
+      id,
+      child:persons!relationships_person_b_id_fkey (*)
+    `)
+    .eq('person_a_id', id)
+    .eq('relationship_type', 'parent_child')
+    .is('archived_at', null);
+
+  const children: Array<{ person: Person; grandchildren: Person[] }> = [];
+  const childIds: string[] = [];
+
+  if (childRelations) {
+    for (const rel of childRelations as any[]) {
+      if (rel.child && isPersonPublic(rel.child)) {
+        children.push({ person: rel.child, grandchildren: [] });
+        childIds.push(rel.child.id);
+      }
+    }
+  }
+
+  // Fetch grandchildren
+  if (childIds.length > 0) {
+    const { data: gcData } = await supabase
+      .from('relationships')
+      .select(`
+        person_a_id,
+        grandchild:persons!relationships_person_b_id_fkey (*)
+      `)
+      .in('person_a_id', childIds)
+      .eq('relationship_type', 'parent_child')
+      .is('archived_at', null);
+
+    if (gcData) {
+      for (const rel of gcData as any[]) {
+        if (rel.grandchild && isPersonPublic(rel.grandchild)) {
+          const parentItem = children.find((c) => c.person.id === rel.person_a_id);
+          if (parentItem) {
+            parentItem.grandchildren.push(rel.grandchild);
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    focusPerson,
+    paternalGrandparents,
+    maternalGrandparents,
+    parents,
+    spouses,
+    children,
+    siblings,
+  };
+}

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getPersonWithFamily } from '@/lib/services/genealogy';
+import { getPersonWithFamily, getVisualFamilyTree } from '@/lib/services/genealogy';
 import { formatHistoricalDate } from '@/lib/services/dates';
 import { ConfidenceBadge } from '@/components/genealogy/ConfidenceBadge';
-import { FamilyEntourageView } from '@/components/genealogy/FamilyEntourageView';
+import { FamilyViewTabs } from '@/components/genealogy/FamilyViewTabs';
 import {
   Calendar,
   MapPin,
@@ -23,10 +23,13 @@ interface PersonPageProps {
 
 export default async function PersonPage({ params }: PersonPageProps) {
   const { id } = await params;
-  const entourage = await getPersonWithFamily(id);
+  const [entourage, treeData] = await Promise.all([
+    getPersonWithFamily(id),
+    getVisualFamilyTree(id),
+  ]);
 
   // Privacy Rule: living, unknown, archived or non-existent records trigger notFound()
-  if (!entourage) {
+  if (!entourage || !treeData) {
     notFound();
   }
 
@@ -59,25 +62,37 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
       {/* 1. FICHE HEADER */}
       <header className="p-6 sm:p-8 rounded-2xl border border-heritage-200 bg-white space-y-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-                Fiche individuelle
-              </span>
-              <ConfidenceBadge precision={person.birth_date_precision} />
-            </div>
-
-            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-heritage-950 tracking-tight">
-              <span className="capitalize">{person.first_names}</span>{' '}
-              <span className="uppercase tracking-wide">{person.last_name}</span>
-            </h1>
-
-            {person.name_variants && person.name_variants.length > 0 && (
-              <p className="text-xs sm:text-sm text-heritage-600 italic">
-                Variantes orthographiques répertoriées : {person.name_variants.join(', ')}
-              </p>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
+          <div className="flex items-start space-x-5">
+            {person.portrait_url && (
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-heritage-100 border border-heritage-300 shrink-0 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={person.portrait_url}
+                  alt={`${person.first_names} ${person.last_name}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             )}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
+                  Fiche individuelle
+                </span>
+                <ConfidenceBadge precision={person.birth_date_precision} />
+              </div>
+
+              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-heritage-950 tracking-tight">
+                <span className="capitalize">{person.first_names}</span>{' '}
+                <span className="uppercase tracking-wide">{person.last_name}</span>
+              </h1>
+
+              {person.name_variants && person.name_variants.length > 0 && (
+                <p className="text-xs sm:text-sm text-heritage-600 italic">
+                  Variantes orthographiques répertoriées : {person.name_variants.join(', ')}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Action button to propose correction */}
@@ -153,18 +168,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
         )}
       </header>
 
-      {/* 2. FAMILY ENTOURAGE */}
-      <section className="space-y-6">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-            Filiation et alliance
-          </span>
-          <h2 className="font-serif text-2xl font-bold text-heritage-950">
-            Entourage familial proche
-          </h2>
-        </div>
-
-        <FamilyEntourageView entourage={entourage} />
+      {/* 2. FAMILY ENTOURAGE & VISUAL TREE */}
+      <section>
+        <FamilyViewTabs entourage={entourage} treeData={treeData} />
       </section>
 
       {/* 3. SOURCES & CITATIONS */}

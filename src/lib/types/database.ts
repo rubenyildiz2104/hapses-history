@@ -62,6 +62,7 @@ export interface Person {
   profession: string | null;
   biography: string | null;
   notes: string | null; // Admin/internal only
+  portrait_url?: string | null;
   
   created_by: string | null;
   created_at: string;
@@ -100,6 +101,7 @@ export interface Source {
   source_date: string | null;
   archive_reference: string | null;
   url: string | null;
+  document_image_url?: string | null;
   description: string | null;
   private_notes: string | null; // Sensitive: non-public
   is_public: boolean;

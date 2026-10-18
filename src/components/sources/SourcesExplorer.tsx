@@ -193,6 +193,39 @@ export function SourcesExplorer({ initialSources }: { initialSources: EnrichedSo
                     </p>
                   )}
 
+                  {source.document_image_url && (
+                    <div className="pt-2">
+                      {source.document_image_url.toLowerCase().endsWith('.pdf') ? (
+                        <a
+                          href={source.document_image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-2 px-3 py-2 rounded-lg bg-red-50 text-red-800 border border-red-200 text-xs font-semibold hover:bg-red-100 transition-colors"
+                        >
+                          <FileText className="w-4 h-4 text-red-600" />
+                          <span>Consulter l&apos;acte numérisé (PDF)</span>
+                        </a>
+                      ) : (
+                        <a
+                          href={source.document_image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block relative rounded-xl overflow-hidden border border-heritage-200 group bg-heritage-100/50"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={source.document_image_url}
+                            alt={source.title}
+                            className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-heritage-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
+                            <span>Agrandir l&apos;acte d&apos;archive ↗</span>
+                          </div>
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   <div className="pt-2 space-y-1 text-xs text-heritage-600">
                     {source.archive_reference && (
                       <p>

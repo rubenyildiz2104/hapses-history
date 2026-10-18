@@ -13,6 +13,7 @@ import {
   CheckCircle2, 
   AlertCircle 
 } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { upsertArticleAction, deleteArticleAction } from '@/app/actions/articles';
 import { HistoricalArticle, ArticleType, ArticleStatus, Person, Source } from '@/lib/types/database';
 
@@ -62,6 +63,8 @@ export function ArticleEditorForm({
   const [summary, setSummary] = useState(initialArticle?.summary || '');
   const [content, setContent] = useState(initialArticle?.content || '');
   const [status, setStatus] = useState<ArticleStatus>(initialArticle?.status || 'draft');
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(initialArticle?.featured_image_url || '');
+  const [featuredImageCredit, setFeaturedImageCredit] = useState(initialArticle?.featured_image_credit || '');
 
   const [linkedPersonIds, setLinkedPersonIds] = useState<string[]>(initialLinkedPersonIds);
   const [linkedSourceIds, setLinkedSourceIds] = useState<string[]>(initialLinkedSourceIds);
@@ -107,6 +110,8 @@ export function ArticleEditorForm({
       period_description: periodDescription.trim() || null,
       family_name: articleType === 'family' ? familyName.trim() : null,
       status,
+      featured_image_url: featuredImageUrl.trim() || null,
+      featured_image_credit: featuredImageCredit.trim() || null,
       linked_person_ids: linkedPersonIds,
       linked_source_ids: linkedSourceIds,
     };
@@ -344,6 +349,35 @@ export function ArticleEditorForm({
               <option value="published">Publié (visible publiquement)</option>
               <option value="archived">Archivé (retiré de la vue publique)</option>
             </select>
+          </div>
+
+          {/* Featured Image & Illustration */}
+          <div className="bg-white p-5 rounded-2xl border border-heritage-200 space-y-3 shadow-sm text-xs">
+            <h3 className="font-serif text-sm font-bold text-heritage-950">
+              Photographie & Illustration
+            </h3>
+            <ImageUpload
+              value={featuredImageUrl}
+              onChange={(url) => setFeaturedImageUrl(url || '')}
+              folder="articles"
+              label="Image de couverture"
+              helperText="Photo d'époque, gravure ou monument (JPG, PNG, WebP max 10 Mo)."
+            />
+
+            {featuredImageUrl && (
+              <div className="pt-2">
+                <label className="block text-[11px] font-semibold text-heritage-700 mb-1">
+                  Crédit ou provenance de l&apos;image
+                </label>
+                <input
+                  type="text"
+                  value={featuredImageCredit}
+                  onChange={(e) => setFeaturedImageCredit(e.target.value)}
+                  placeholder="Ex : Collection privée famille Dupont / Archives 1910"
+                  className="w-full px-2.5 py-1.5 rounded border border-heritage-300 text-xs"
+                />
+              </div>
+            )}
           </div>
 
           {/* Timeframe */}

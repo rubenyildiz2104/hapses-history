@@ -19,6 +19,7 @@ export const SourceSchema = z.object({
   source_date: z.string().max(100).nullable().optional(),
   archive_reference: z.string().max(150).nullable().optional(),
   url: z.string().url('L\'URL doit être valide').nullable().optional().or(z.literal('')),
+  document_image_url: z.string().url().nullable().optional().or(z.literal('')),
   description: z.string().max(3000).nullable().optional(),
   private_notes: z.string().max(3000).nullable().optional(),
   is_public: z.boolean().default(true),

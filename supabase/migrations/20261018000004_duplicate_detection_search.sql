@@ -86,7 +86,8 @@ BEGIN
     LIMIT LEAST(p_limit, 100)
     OFFSET GREATEST(p_offset, 0);
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY INVOKER;
+$$ LANGUAGE plpgsql STABLE SECURITY INVOKER
+SET search_path = public, extensions;
 
 -- 2. POTENTIAL DUPLICATES DETECTION FUNCTION (ADMIN / CONTRIBUTOR ADVISORY)
 -- Detects duplicates using name similarity (Levenshtein/trigram) + compatible dates
@@ -157,7 +158,8 @@ BEGIN
     ORDER BY confidence_score DESC
     LIMIT 10;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public, extensions;
 
 GRANT EXECUTE ON FUNCTION public.search_public_persons TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.find_potential_duplicates TO authenticated;

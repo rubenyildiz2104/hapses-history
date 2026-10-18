@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- 1. EXTENSIONS
+SET search_path TO public, extensions;
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "unaccent";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
@@ -218,15 +220,8 @@ CREATE INDEX IF NOT EXISTS idx_persons_first_names ON public.persons (first_name
 CREATE INDEX IF NOT EXISTS idx_persons_visibility_life ON public.persons (visibility, life_status, archived_at);
 CREATE INDEX IF NOT EXISTS idx_persons_birth_year ON public.persons (birth_year);
 CREATE INDEX IF NOT EXISTS idx_persons_death_year ON public.persons (death_year);
-
--- Immutable unaccent wrapper function for GIN indexing
-CREATE OR REPLACE FUNCTION public.immutable_unaccent(text)
-RETURNS text AS $$
-    SELECT public.unaccent('unaccent', $1);
-$$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT;
-
 CREATE INDEX IF NOT EXISTS idx_persons_trgm_search ON public.persons USING gin (
-    (lower(public.immutable_unaccent(last_name || ' ' || first_names))) gin_trgm_ops
+    (lower(last_name || ' ' || first_names)) gin_trgm_ops
 );
 
 -- 5. RELATIONSHIPS TABLE
@@ -1240,7 +1235,8 @@ BEGIN
     LIMIT LEAST(p_limit, 100)
     OFFSET GREATEST(p_offset, 0);
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY INVOKER;
+$$ LANGUAGE plpgsql STABLE SECURITY INVOKER
+SET search_path = public, extensions;
 
 -- 2. POTENTIAL DUPLICATES DETECTION FUNCTION (ADMIN / CONTRIBUTOR ADVISORY)
 -- Detects duplicates using name similarity (Levenshtein/trigram) + compatible dates
@@ -1311,7 +1307,8 @@ BEGIN
     ORDER BY confidence_score DESC
     LIMIT 10;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public, extensions;
 
 GRANT EXECUTE ON FUNCTION public.search_public_persons TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.find_potential_duplicates TO authenticated;

@@ -8,6 +8,33 @@ export interface AuthActionResult {
   error?: string;
 }
 
+function mapAuthError(error: { message: string } | null, defaultMsg: string): string {
+  if (!error) return defaultMsg;
+  const msg = error.message.toLowerCase();
+
+  if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+    return "Le serveur a temporairement dépassé le quota d'envoi d'e-mails. Veuillez patienter quelques minutes avant de réessayer.";
+  }
+  if (msg.includes('already registered') || msg.includes('user already exists')) {
+    return "Un compte est déjà associé à cette adresse e-mail. Veuillez vous connecter ou réinitialiser votre mot de passe.";
+  }
+  if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+    return "Adresse e-mail ou mot de passe incorrect.";
+  }
+  if (msg.includes('email not confirmed')) {
+    return "Votre adresse e-mail n'a pas encore été confirmée. Veuillez vérifier votre boîte de réception (et vos courriers indésirables).";
+  }
+  if (msg.includes('password should be at least') || msg.includes('weak password')) {
+    return "Le mot de passe doit comporter au moins 8 caractères.";
+  }
+  if (msg.includes('invalid api key')) {
+    console.error('[Supabase Auth] Critical: Invalid API Key received from Supabase Auth service.');
+    return "Erreur d'authentification serveur. Veuillez réessayer ultérieurement.";
+  }
+
+  return error.message;
+}
+
 export async function signInAction(formData: FormData): Promise<AuthActionResult> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
@@ -23,7 +50,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   });
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: mapAuthError(error, 'Échec de connexion.') };
   }
 
   redirect('/compte/propositions');
@@ -65,7 +92,7 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
   });
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: mapAuthError(error, "Une erreur est survenue lors de l'inscription.") };
   }
 
   return { success: true };
@@ -87,7 +114,7 @@ export async function resetPasswordAction(formData: FormData): Promise<AuthActio
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: mapAuthError(error, "Impossible de réinitialiser le mot de passe.") };
   }
 
   return { success: true };

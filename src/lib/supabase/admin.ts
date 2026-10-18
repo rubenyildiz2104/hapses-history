@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getResolvedSupabaseUrl, getResolvedSupabaseServiceRoleKey } from './config';
 
 /**
  * Privileged Admin Supabase Client.
@@ -11,12 +12,8 @@ export function createAdminClient() {
     throw new Error('FATAL: createAdminClient cannot be called from the client browser!');
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Configuration manquante : SUPABASE_SERVICE_ROLE_KEY ou NEXT_PUBLIC_SUPABASE_URL');
-  }
+  const supabaseUrl = getResolvedSupabaseUrl();
+  const serviceRoleKey = getResolvedSupabaseServiceRoleKey();
 
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {

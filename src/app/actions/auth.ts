@@ -63,13 +63,35 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
     return { success: false, error: 'Veuillez renseigner votre e-mail et votre mot de passe.' };
   }
 
+  const cleanEmail = email.trim().toLowerCase();
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
+    email: cleanEmail,
     password,
   });
 
   if (error) {
+    // If the account was created earlier and email wasn't confirmed yet, auto-confirm it and retry login
+    if (error.message.toLowerCase().includes('email not confirmed')) {
+      try {
+        const adminClient = createAdminClient();
+        const { data: userList } = await adminClient.auth.admin.listUsers();
+        const targetUser = userList?.users.find((u) => u.email?.toLowerCase() === cleanEmail);
+        if (targetUser) {
+          await adminClient.auth.admin.updateUserById(targetUser.id, { email_confirm: true });
+          const retry = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+          if (!retry.error) {
+            redirect('/compte/propositions');
+          }
+        }
+      } catch (autoErr) {
+        console.warn('[signInAction] Auto-confirm fallback error:', autoErr);
+      }
+    }
+
     return { success: false, error: mapAuthError(error, 'Échec de connexion.') };
   }
 

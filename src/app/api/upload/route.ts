@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createClient } from '@supabase/supabase-js';
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -66,39 +65,42 @@ export async function POST(req: NextRequest) {
       .substring(0, 30);
     const filePath = `${folder}/${Date.now()}-${cleanBaseName}.${ext}`;
 
-    // 6. Convert to Buffer and upload via admin client
+    // 6. Convert to Buffer and upload directly to Supabase Storage API
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const adminSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const uploadEndpoint = `${supabaseUrl}/storage/v1/object/archives/${filePath}`;
 
-    const { error: uploadError } = await adminSupabase.storage
-      .from('archives')
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        cacheControl: '31536000',
-        upsert: true,
-      });
+    const uploadRes = await fetch(uploadEndpoint, {
+      method: 'POST',
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': file.type || 'image/jpeg',
+        'Cache-Control': 'max-age=31536000',
+        'x-upsert': 'true',
+      },
+      body: buffer,
+      // @ts-expect-error duplex option needed for Node.js undici streaming body
+      duplex: 'half',
+    });
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.error('Storage upload error:', uploadRes.status, errText);
       return NextResponse.json(
-        { error: uploadError.message || 'Erreur lors de l’écriture du fichier.' },
+        { error: `Erreur lors de l’écriture du fichier (${uploadRes.status}).` },
         { status: 500 }
       );
     }
 
-    // 7. Get public CDN URL
-    const { data: pubData } = adminSupabase.storage
-      .from('archives')
-      .getPublicUrl(filePath);
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/archives/${filePath}`;
 
     return NextResponse.json({
       success: true,
-      url: pubData.publicUrl,
+      url: publicUrl,
       path: filePath,
     });
   } catch (err: unknown) {

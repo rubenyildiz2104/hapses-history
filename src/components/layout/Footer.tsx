@@ -45,6 +45,11 @@ export function Footer() {
                   Sources & Registres
                 </Link>
               </li>
+              <li>
+                <Link href="/export" className="hover:text-heritage-950 transition-colors">
+                  Préservation & Export
+                </Link>
+              </li>
             </ul>
           </div>
 

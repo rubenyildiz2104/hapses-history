@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, ShieldAlert, CheckSquare, History, ArrowLeft, LogOut, BookOpen } from 'lucide-react';
+import { Shield, ShieldAlert, CheckSquare, History, ArrowLeft, LogOut, BookOpen, FileText } from 'lucide-react';
 import { signOutAction } from '@/app/actions/auth';
 
 export default async function AdminLayout({
@@ -109,6 +109,14 @@ export default async function AdminLayout({
                 </Link>
 
                 <Link
+                  href="/admin/sources"
+                  className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-semibold text-heritage-100 hover:text-white hover:bg-heritage-800 transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 text-heritage-300" />
+                  <span>Sources & Archives</span>
+                </Link>
+
+                <Link
                   href="/admin/audit"
                   className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-semibold text-heritage-100 hover:text-white hover:bg-heritage-800 transition-colors"
                 >
@@ -147,6 +155,12 @@ export default async function AdminLayout({
             className="flex-1 text-center py-1.5 rounded text-xs font-semibold text-heritage-100 hover:bg-heritage-800"
           >
             Articles
+          </Link>
+          <Link
+            href="/admin/sources"
+            className="flex-1 text-center py-1.5 rounded text-xs font-semibold text-heritage-100 hover:bg-heritage-800"
+          >
+            Sources
           </Link>
           <Link
             href="/admin/audit"

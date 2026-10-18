@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { BookOpen, Users, Landmark, Info, Menu, X, User, PlusCircle, Shield } from 'lucide-react';
+import { BookOpen, Users, Landmark, Info, Menu, X, User, PlusCircle, Shield, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export function Header() {
@@ -58,6 +58,7 @@ export function Header() {
     { href: '/genealogie', label: 'Généalogie', icon: Users },
     { href: '/histoire', label: 'Histoire du village', icon: Landmark },
     { href: '/familles', label: 'Histoires de familles', icon: BookOpen },
+    { href: '/sources', label: 'Sources & Archives', icon: FileText },
     { href: '/a-propos', label: 'À propos', icon: Info },
   ];
 

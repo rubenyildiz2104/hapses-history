@@ -95,6 +95,7 @@ export interface Dictionary {
     individualRecord: string;
     nameVariants: string;
     proposeCorrection: string;
+    proposeRelationship: string;
     vitalEvents: string;
     birth: string;
     death: string;

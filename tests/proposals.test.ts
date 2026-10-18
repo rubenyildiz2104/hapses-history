@@ -78,4 +78,78 @@ describe('Proposal Submission & Editing Validation', () => {
     const res = SubmitProposalSchema.safeParse(livingPersonProposal);
     expect(res.success).toBe(false);
   });
+
+  it('validates an add_person proposal with optional parent_id and spouse_id', () => {
+    const newPersonWithFamily = {
+      proposal_type: 'add_person',
+      payload: {
+        first_names: 'Marie',
+        last_name: 'YILDIZ',
+        gender: 'F',
+        birth_year: 1935,
+        life_status: 'deceased',
+        parent_id: '11111111-1111-4111-8111-111111111111',
+        spouse_id: '22222222-2222-4222-8222-222222222222',
+        visibility: 'public',
+      },
+    };
+
+    const res = SubmitProposalSchema.safeParse(newPersonWithFamily);
+    expect(res.success).toBe(true);
+  });
+
+  it('validates an add_relationship proposal (parent_child)', () => {
+    const parentChildProposal = {
+      proposal_type: 'add_relationship',
+      payload: {
+        relationship_type: 'parent_child',
+        person_a_id: '11111111-1111-4111-8111-111111111111',
+        person_b_id: '22222222-2222-4222-8222-222222222222',
+        notes: 'Filiation attestée par le livret de famille',
+      },
+      sources_info: {
+        title: 'Livret de famille',
+      },
+      user_explanation: 'Lien père-fils',
+    };
+
+    const res = SubmitProposalSchema.safeParse(parentChildProposal);
+    expect(res.success).toBe(true);
+  });
+
+  it('validates an add_relationship proposal (spouse with marriage details)', () => {
+    const spouseProposal = {
+      proposal_type: 'add_relationship',
+      payload: {
+        relationship_type: 'spouse',
+        person_a_id: '11111111-1111-4111-8111-111111111111',
+        person_b_id: '33333333-3333-4333-8333-333333333333',
+        start_year: 1912,
+        start_date: '1912-06-15',
+        start_place: 'Habses',
+        notes: 'Mariage religieux',
+      },
+      sources_info: {
+        title: 'Registre de mariage',
+        archive_reference: 'Vue 88',
+      },
+    };
+
+    const res = SubmitProposalSchema.safeParse(spouseProposal);
+    expect(res.success).toBe(true);
+  });
+
+  it('rejects an add_relationship proposal linking a person to themselves', () => {
+    const selfRelProposal = {
+      proposal_type: 'add_relationship',
+      payload: {
+        relationship_type: 'spouse',
+        person_a_id: '11111111-1111-4111-8111-111111111111',
+        person_b_id: '11111111-1111-4111-8111-111111111111',
+      },
+    };
+
+    const res = SubmitProposalSchema.safeParse(selfRelProposal);
+    expect(res.success).toBe(false);
+  });
 });

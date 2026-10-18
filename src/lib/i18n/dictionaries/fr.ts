@@ -87,6 +87,7 @@ export const fr: Dictionary = {
     individualRecord: 'Fiche individuelle',
     nameVariants: 'Variantes orthographiques répertoriées : {variants}',
     proposeCorrection: 'Proposer une correction',
+    proposeRelationship: 'Proposer un lien familial',
     vitalEvents: 'Événements vitaux',
     birth: 'Naissance',
     death: 'Décès',

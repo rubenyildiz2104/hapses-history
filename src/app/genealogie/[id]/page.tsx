@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Edit3,
+  HeartHandshake,
 } from 'lucide-react';
 
 interface PersonPageProps {
@@ -98,14 +99,21 @@ export default async function PersonPage({ params }: PersonPageProps) {
             </div>
           </div>
 
-          {/* Action button to propose correction */}
-          <div className="shrink-0">
+          {/* Action buttons to propose correction or relationship */}
+          <div className="shrink-0 flex flex-wrap items-center gap-2">
             <Link
               href={`/proposer?targetPersonId=${person.id}`}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg border border-heritage-300 text-heritage-800 text-xs font-semibold hover:bg-heritage-50 transition-colors"
+              className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg border border-heritage-300 text-heritage-800 text-xs font-semibold hover:bg-heritage-50 transition-colors"
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>{t('genealogy.proposeCorrection')}</span>
+            </Link>
+            <Link
+              href={`/proposer?type=add_relationship&personAId=${person.id}`}
+              className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-heritage-800 text-heritage-50 text-xs font-semibold hover:bg-heritage-900 transition-colors shadow-xs"
+            >
+              <HeartHandshake className="w-3.5 h-3.5" />
+              <span>{t('genealogy.proposeRelationship')}</span>
             </Link>
           </div>
         </div>

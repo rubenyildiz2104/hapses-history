@@ -16,7 +16,8 @@ import {
   MessageSquare,
   ShieldCheck,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  HeartHandshake
 } from 'lucide-react';
 import { reviewProposalAction } from '@/app/actions/moderation';
 import { ProposalType, DatePrecision, LifeStatus } from '@/lib/types/database';
@@ -39,6 +40,10 @@ export interface ModerationProposal {
   submitter_email?: string;
   target_person_id: string | null;
   target_person?: Record<string, unknown> | null;
+  person_a?: Record<string, unknown> | null;
+  person_b?: Record<string, unknown> | null;
+  parent_person?: Record<string, unknown> | null;
+  spouse_person?: Record<string, unknown> | null;
   payload: Record<string, unknown>;
   sources_info: Record<string, unknown> | null;
   status: string;
@@ -181,8 +186,146 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
             </div>
           )}
 
-          {/* SIDE-BY-SIDE DIFF VIEW (FOR UPDATE_PERSON) OR SINGLE VIEW (FOR ADD_PERSON) */}
-          {proposal.proposal_type === 'update_person' && target ? (
+          {/* ADD_RELATIONSHIP VIEW */}
+          {proposal.proposal_type === 'add_relationship' ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-2 space-y-4">
+                <div className="p-4 rounded-xl bg-heritage-50/70 border border-heritage-200 space-y-4">
+                  <span className="font-semibold text-heritage-600 block uppercase tracking-wide text-xs">
+                    Lien de parenté proposé
+                  </span>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg bg-white border border-heritage-200">
+                    {/* Person A */}
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold uppercase text-heritage-500">Personne A</span>
+                      <p className="font-serif font-bold text-base text-heritage-950">
+                        {proposal.person_a ? `${String(proposal.person_a.first_names)} ${String(proposal.person_a.last_name)}` : String(payload.person_a_id)}
+                      </p>
+                      {proposal.person_a && (
+                        <p className="text-xs text-heritage-500">
+                          {proposal.person_a.birth_year ? `° ${String(proposal.person_a.birth_year)}` : '° ?'} — {proposal.person_a.death_year ? `† ${String(proposal.person_a.death_year)}` : '† ?'}
+                        </p>
+                      )}
+                      {proposal.person_a && (
+                        <Link
+                          href={`/genealogie/${String(proposal.person_a.id)}`}
+                          target="_blank"
+                          className="text-xs text-heritage-700 underline inline-flex items-center space-x-1 font-medium"
+                        >
+                          <span>Consulter fiche</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Relation indicator badge */}
+                    <div className="flex flex-col items-center justify-center px-4 py-2.5 rounded-xl bg-heritage-100 border border-heritage-300 text-center shrink-0">
+                      {payload.relationship_type === 'parent_child' ? (
+                        <>
+                          <span className="text-xs font-bold text-heritage-900 uppercase">Est le parent de</span>
+                          <span className="text-[11px] text-heritage-600 font-medium">➔ Filiation</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs font-bold text-heritage-900 uppercase">Époux / Épouse de</span>
+                          <span className="text-[11px] text-heritage-600 font-medium">💍 Conjoints</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Person B */}
+                    <div className="space-y-1 text-left sm:text-right">
+                      <span className="text-[11px] font-semibold uppercase text-heritage-500">Personne B</span>
+                      <p className="font-serif font-bold text-base text-heritage-950">
+                        {proposal.person_b ? `${String(proposal.person_b.first_names)} ${String(proposal.person_b.last_name)}` : String(payload.person_b_id)}
+                      </p>
+                      {proposal.person_b && (
+                        <p className="text-xs text-heritage-500">
+                          {proposal.person_b.birth_year ? `° ${String(proposal.person_b.birth_year)}` : '° ?'} — {proposal.person_b.death_year ? `† ${String(proposal.person_b.death_year)}` : '† ?'}
+                        </p>
+                      )}
+                      {proposal.person_b && (
+                        <Link
+                          href={`/genealogie/${String(proposal.person_b.id)}`}
+                          target="_blank"
+                          className="text-xs text-heritage-700 underline inline-flex items-center space-x-1 font-medium"
+                        >
+                          <span>Consulter fiche</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Marriage details if applicable */}
+                  {(Boolean(payload.start_year) || Boolean(payload.start_date) || Boolean(payload.start_place)) && (
+                    <div className="p-3 rounded-lg bg-white border border-heritage-200 text-xs text-heritage-800 space-y-1">
+                      <span className="font-semibold block text-heritage-700">Détails du mariage / de l’union</span>
+                      <p>
+                        {payload.start_year ? `Année : ${String(payload.start_year)}` : ''}
+                        {payload.start_date ? ` (le ${String(payload.start_date)})` : ''}
+                        {payload.start_place ? ` à ${String(payload.start_place)}` : ''}
+                      </p>
+                    </div>
+                  )}
+
+                  {Boolean(payload.notes) && (
+                    <div className="p-3 rounded-lg bg-white border border-heritage-200 text-xs text-heritage-800 space-y-1">
+                      <span className="font-semibold block text-heritage-700">Précisions sur ce lien</span>
+                      <p className="font-serif italic leading-relaxed">« {String(payload.notes)} »</p>
+                    </div>
+                  )}
+                </div>
+
+                {Boolean(payload.user_explanation) && (
+                  <div className="text-xs text-heritage-700 bg-amber-50/40 p-3 rounded-lg border border-amber-200">
+                    <strong className="text-amber-900 block mb-1">Explication du contributeur :</strong>
+                    <p className="font-serif italic leading-relaxed">« {String(payload.user_explanation)} »</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Source verification column */}
+              <div className="bg-heritage-50/60 p-4 rounded-xl border border-heritage-200 text-xs space-y-2 h-fit">
+                <span className="font-bold uppercase tracking-wider text-heritage-800 flex items-center space-x-1.5">
+                  <BookOpen className="w-4 h-4 text-heritage-600" />
+                  <span>Sources & Références</span>
+                </span>
+                {sources ? (
+                  <div className="space-y-1.5 text-heritage-700 pt-1">
+                    <p className="font-bold text-heritage-950">{String(sources.title || 'Sans titre')}</p>
+                    {Boolean(sources.archive_reference) && (
+                      <p className="text-heritage-600">Archive : {String(sources.archive_reference)}</p>
+                    )}
+                    {Boolean(sources.description) && (
+                      <p className="text-heritage-600 font-serif italic">{String(sources.description)}</p>
+                    )}
+                    {Boolean(sources.uncertainty_notes) && (
+                      <p className="text-amber-800 bg-amber-50 p-1.5 rounded border border-amber-200 text-[11px]">
+                        Note : {String(sources.uncertainty_notes)}
+                      </p>
+                    )}
+                    {Boolean(sources.url) && (
+                      <a
+                        href={String(sources.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center space-x-1 text-heritage-900 underline font-medium hover:text-black mt-1"
+                      >
+                        <span>Consulter document</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-heritage-500 italic pt-1">
+                    Aucune source formelle fournie par le contributeur.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : proposal.proposal_type === 'update_person' && target ? (
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-heritage-700">
                 Comparatif des modifications proposées
@@ -279,6 +422,49 @@ export function ProposalModerationCard({ proposal }: { proposal: ModerationPropo
                     </p>
                   </div>
                 </div>
+
+                {/* Optional family linkages to create with this person */}
+                {(Boolean(proposal.parent_person) || Boolean(proposal.spouse_person)) && (
+                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
+                    <span className="font-semibold text-emerald-900 uppercase text-[11px] block">
+                      Liens familiaux créés automatiquement à l&apos;approbation :
+                    </span>
+                    {proposal.parent_person && (
+                      <div className="flex items-center space-x-2 text-emerald-900">
+                        <span>👪 <strong>Parent :</strong></span>
+                        <span>{String(proposal.parent_person.first_names)} {String(proposal.parent_person.last_name)}</span>
+                        {Boolean(proposal.parent_person.birth_year) && (
+                          <span className="text-emerald-700">(° {String(proposal.parent_person.birth_year)})</span>
+                        )}
+                        <Link
+                          href={`/genealogie/${String(proposal.parent_person.id)}`}
+                          target="_blank"
+                          className="text-emerald-800 underline hover:text-emerald-950 inline-flex items-center space-x-0.5 ml-2 font-medium"
+                        >
+                          <span>Fiche</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    )}
+                    {proposal.spouse_person && (
+                      <div className="flex items-center space-x-2 text-emerald-900">
+                        <span>💍 <strong>Conjoint(e) :</strong></span>
+                        <span>{String(proposal.spouse_person.first_names)} {String(proposal.spouse_person.last_name)}</span>
+                        {Boolean(proposal.spouse_person.birth_year) && (
+                          <span className="text-emerald-700">(° {String(proposal.spouse_person.birth_year)})</span>
+                        )}
+                        <Link
+                          href={`/genealogie/${String(proposal.spouse_person.id)}`}
+                          target="_blank"
+                          className="text-emerald-800 underline hover:text-emerald-950 inline-flex items-center space-x-0.5 ml-2 font-medium"
+                        >
+                          <span>Fiche</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {Boolean(payload.profession) && (
                   <p className="text-xs text-heritage-700">

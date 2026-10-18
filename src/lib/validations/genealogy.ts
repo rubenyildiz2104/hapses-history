@@ -36,6 +36,9 @@ export const PersonBaseSchema = z.object({
   profession: z.string().max(200).nullable().optional(),
   biography: z.string().max(5000).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
+
+  parent_id: z.string().uuid('ID de parent invalide').nullable().optional().or(z.literal('')),
+  spouse_id: z.string().uuid('ID de conjoint invalide').nullable().optional().or(z.literal('')),
 });
 
 export const PersonSchema = PersonBaseSchema.refine((data) => {
@@ -72,12 +75,12 @@ export const RelationshipSchema = z.object({
   person_a_id: z.string().uuid('ID de personne A invalide'),
   person_b_id: z.string().uuid('ID de personne B invalide'),
   
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().or(z.literal('')),
   start_date_precision: DatePrecisionSchema.default('unknown'),
   start_year: z.number().int().min(800).max(2100).nullable().optional(),
   start_place: z.string().max(200).nullable().optional(),
   
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().or(z.literal('')),
   end_date_precision: DatePrecisionSchema.default('unknown'),
   end_year: z.number().int().min(800).max(2100).nullable().optional(),
   end_place: z.string().max(200).nullable().optional(),

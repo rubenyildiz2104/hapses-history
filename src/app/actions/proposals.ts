@@ -120,6 +120,19 @@ export async function getPersonForCorrectionAction(personId: string) {
   return person;
 }
 
+export async function getPersonSummaryAction(personId: string) {
+  if (!personId) return null;
+  const adminClient = createAdminClient();
+  const { data: person } = await adminClient
+    .from('persons')
+    .select('id, first_names, last_name, birth_year, death_year, profession')
+    .eq('id', personId)
+    .is('archived_at', null)
+    .single();
+
+  return person || null;
+}
+
 export async function searchPersonsForCorrectionAction(searchQuery: string) {
   if (!searchQuery || searchQuery.trim().length < 2) return [];
 
@@ -135,6 +148,8 @@ export async function searchPersonsForCorrectionAction(searchQuery: string) {
 
   return persons || [];
 }
+
+export const searchPersonsAction = searchPersonsForCorrectionAction;
 
 export async function updateProposalAction(
   proposalId: string,

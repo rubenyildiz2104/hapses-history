@@ -87,6 +87,7 @@ export const en: Dictionary = {
     individualRecord: 'Individual record',
     nameVariants: 'Documented spelling variants: {variants}',
     proposeCorrection: 'Propose a correction',
+    proposeRelationship: 'Propose a family link',
     vitalEvents: 'Vital Events',
     birth: 'Birth',
     death: 'Death',

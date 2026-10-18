@@ -7,7 +7,8 @@ import {
   getProposalForEditAction, 
   updateProposalAction,
   getPersonForCorrectionAction,
-  searchPersonsForCorrectionAction
+  searchPersonsForCorrectionAction,
+  getPersonSummaryAction
 } from '@/app/actions/proposals';
 import { ProposalType, DatePrecision, LifeStatus } from '@/lib/types/database';
 import { 
@@ -20,19 +21,177 @@ import {
   Loader2,
   User,
   ExternalLink,
-  Search
+  Search,
+  ArrowRight,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
+
+interface PersonSummary {
+  id: string;
+  first_names: string;
+  last_name: string;
+  birth_year: number | null;
+  death_year: number | null;
+  profession: string | null;
+}
+
+function PersonPicker({
+  label,
+  description,
+  selectedPerson,
+  onSelect,
+  onRemove,
+  excludePersonId,
+  placeholder = "Rechercher par prénom ou nom...",
+}: {
+  label: string;
+  description?: string;
+  selectedPerson: PersonSummary | null;
+  onSelect: (p: PersonSummary) => void;
+  onRemove?: () => void;
+  excludePersonId?: string | null;
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PersonSummary[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  async function handleSearch(q: string) {
+    setQuery(q);
+    if (q.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const res = await searchPersonsForCorrectionAction(q);
+      const filtered = (res || []).filter((p) => p.id !== excludePersonId);
+      setResults(filtered);
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800">
+        {label}
+      </label>
+      {description && (
+        <p className="text-xs text-heritage-500 font-serif leading-relaxed">
+          {description}
+        </p>
+      )}
+
+      {selectedPerson ? (
+        <div className="p-3 rounded-xl bg-heritage-50 border border-heritage-300 flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="truncate">
+              <p className="font-serif font-bold text-sm text-heritage-950 truncate">
+                {selectedPerson.first_names} {selectedPerson.last_name}
+              </p>
+              <p className="text-xs text-heritage-600">
+                {selectedPerson.birth_year ? `° ${selectedPerson.birth_year}` : '° ?'} — {selectedPerson.death_year ? `† ${selectedPerson.death_year}` : '† ?'}
+                {selectedPerson.profession ? ` • ${selectedPerson.profession}` : ''}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0">
+            <Link
+              href={`/genealogie/${selectedPerson.id}`}
+              target="_blank"
+              className="text-xs text-heritage-700 hover:text-heritage-950 underline inline-flex items-center space-x-1 font-semibold"
+            >
+              <span>Voir fiche</span>
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+            {onRemove && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="px-2 py-1 rounded-md text-xs font-medium text-red-700 hover:bg-red-50 border border-red-200 transition-colors"
+              >
+                Changer
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="w-4 h-4 text-heritage-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder={placeholder}
+              className="w-full pl-10 pr-10 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600 bg-white"
+            />
+            {isSearching && (
+              <Loader2 className="w-4 h-4 text-heritage-500 animate-spin absolute right-3 top-3" />
+            )}
+          </div>
+
+          {results.length > 0 && (
+            <div className="divide-y divide-heritage-100 border border-heritage-200 rounded-lg max-h-52 overflow-y-auto bg-white shadow-xs">
+              {results.map((p) => (
+                <div
+                  key={p.id}
+                  className="p-2.5 flex items-center justify-between hover:bg-heritage-50 transition-colors"
+                >
+                  <div>
+                    <p className="font-serif font-bold text-xs sm:text-sm text-heritage-950">
+                      {p.first_names} {p.last_name}
+                    </p>
+                    <p className="text-[11px] text-heritage-500">
+                      {p.birth_year ? `° ${p.birth_year}` : '° ?'} — {p.death_year ? `† ${p.death_year}` : '† ?'}
+                      {p.profession ? ` • ${p.profession}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelect(p);
+                      setQuery('');
+                      setResults([]);
+                    }}
+                    className="px-2.5 py-1 rounded bg-heritage-800 text-heritage-50 text-xs font-medium hover:bg-heritage-900 transition-colors shrink-0"
+                  >
+                    Sélectionner
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {query.trim().length >= 2 && results.length === 0 && !isSearching && (
+            <p className="text-xs text-heritage-500 italic pl-1">
+              Aucune personne trouvée pour « {query} ».
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ProposerForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillTargetPersonId = searchParams.get('targetPersonId');
   const editProposalId = searchParams.get('editProposalId');
+  const typeParam = searchParams.get('type');
+  const personAParam = searchParams.get('personAId');
 
-  const [proposalType, setProposalType] = useState<ProposalType>(
-    prefillTargetPersonId ? 'update_person' : 'add_person'
-  );
+  const [proposalType, setProposalType] = useState<ProposalType>(() => {
+    if (typeParam === 'add_relationship' || personAParam) return 'add_relationship';
+    if (prefillTargetPersonId) return 'update_person';
+    return 'add_person';
+  });
 
   // Edit proposal state
   const [isLoadingProposal, setIsLoadingProposal] = useState(Boolean(editProposalId));
@@ -50,15 +209,50 @@ function ProposerForm() {
 
   // Search for person to correct when none preselected
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{
-    id: string;
-    first_names: string;
-    last_name: string;
-    birth_year: number | null;
-    death_year: number | null;
-    profession: string | null;
-  }>>([]);
+  const [searchResults, setSearchResults] = useState<PersonSummary[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Form states for Person (add_person / update_person)
+  const [firstNames, setFirstNames] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [nameVariants, setNameVariants] = useState('');
+  const [gender, setGender] = useState<'M' | 'F' | 'other' | 'unknown'>('unknown');
+  const [birthYear, setBirthYear] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [birthDatePrecision, setBirthDatePrecision] = useState<DatePrecision>('unknown');
+  const [birthPlace, setBirthPlace] = useState('');
+  const [deathYear, setDeathYear] = useState('');
+  const [deathDate, setDeathDate] = useState('');
+  const [deathDatePrecision, setDeathDatePrecision] = useState<DatePrecision>('unknown');
+  const [deathPlace, setDeathPlace] = useState('');
+  const [lifeStatus, setLifeStatus] = useState<LifeStatus>('deceased');
+  const [profession, setProfession] = useState('');
+  const [biography, setBiography] = useState('');
+
+  // Optional family link when adding a new person (add_person)
+  const [parentPerson, setParentPerson] = useState<PersonSummary | null>(null);
+  const [spousePerson, setSpousePerson] = useState<PersonSummary | null>(null);
+
+  // Form states for Relationship (add_relationship)
+  const [relType, setRelType] = useState<'parent_child' | 'spouse'>('parent_child');
+  const [relPersonA, setRelPersonA] = useState<PersonSummary | null>(null);
+  const [relPersonB, setRelPersonB] = useState<PersonSummary | null>(null);
+  const [relStartYear, setRelStartYear] = useState('');
+  const [relStartDate, setRelStartDate] = useState('');
+  const [relStartPlace, setRelStartPlace] = useState('');
+  const [relNotes, setRelNotes] = useState('');
+
+  // Sources & explanations (shared across all forms)
+  const [sourceTitle, setSourceTitle] = useState('');
+  const [archiveReference, setArchiveReference] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourceDescription, setSourceDescription] = useState('');
+  const [uncertaintyNotes, setUncertaintyNotes] = useState('');
+  const [userExplanation, setUserExplanation] = useState('');
+
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   function populateFormWithPerson(p: Record<string, unknown>) {
     setSelectedPerson({
@@ -127,6 +321,28 @@ function ProposerForm() {
     };
   }, [prefillTargetPersonId, editProposalId]);
 
+  // Load Person A when personAId is provided in URL
+  useEffect(() => {
+    if (!personAParam || editProposalId) return;
+
+    let isMounted = true;
+    async function loadPersonA() {
+      try {
+        const summary = await getPersonSummaryAction(personAParam!);
+        if (isMounted && summary) {
+          setRelPersonA(summary);
+          setProposalType('add_relationship');
+        }
+      } catch {
+        // Ignore error
+      }
+    }
+    loadPersonA();
+    return () => {
+      isMounted = false;
+    };
+  }, [personAParam, editProposalId]);
+
   async function handleSearchPersons(query: string) {
     setSearchQuery(query);
     if (query.trim().length < 2) {
@@ -141,38 +357,6 @@ function ProposerForm() {
       setIsSearching(false);
     }
   }
-
-  // Form states for Person
-  const [firstNames, setFirstNames] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [nameVariants, setNameVariants] = useState('');
-  const [gender, setGender] = useState<'M' | 'F' | 'other' | 'unknown'>('unknown');
-
-  const [birthYear, setBirthYear] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [birthDatePrecision, setBirthDatePrecision] = useState<DatePrecision>('unknown');
-  const [birthPlace, setBirthPlace] = useState('');
-
-  const [deathYear, setDeathYear] = useState('');
-  const [deathDate, setDeathDate] = useState('');
-  const [deathDatePrecision, setDeathDatePrecision] = useState<DatePrecision>('unknown');
-  const [deathPlace, setDeathPlace] = useState('');
-
-  const [lifeStatus, setLifeStatus] = useState<LifeStatus>('deceased');
-  const [profession, setProfession] = useState('');
-  const [biography, setBiography] = useState('');
-
-  // Sources & explanations
-  const [sourceTitle, setSourceTitle] = useState('');
-  const [archiveReference, setArchiveReference] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
-  const [sourceDescription, setSourceDescription] = useState('');
-  const [uncertaintyNotes, setUncertaintyNotes] = useState('');
-  const [userExplanation, setUserExplanation] = useState('');
-
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   // Load existing proposal data when editProposalId is set
   useEffect(() => {
@@ -192,7 +376,8 @@ function ProposerForm() {
           return;
         }
 
-        setProposalType(p.proposal_type as ProposalType);
+        const pType = p.proposal_type as ProposalType;
+        setProposalType(pType);
         setEditTargetPersonId(p.target_person_id || null);
         if (p.review_comment) {
           setAdminComment(p.review_comment);
@@ -201,27 +386,57 @@ function ProposerForm() {
         const payload = (p.payload || {}) as Record<string, unknown>;
         const sources = (p.sources_info || {}) as Record<string, unknown>;
 
-        setFirstNames(payload.first_names ? String(payload.first_names) : '');
-        setLastName(payload.last_name ? String(payload.last_name) : '');
-        if (Array.isArray(payload.name_variants)) {
-          setNameVariants(payload.name_variants.join(', '));
-        } else if (payload.name_variants) {
-          setNameVariants(String(payload.name_variants));
+        if (pType === 'add_relationship') {
+          setRelType((payload.relationship_type as 'parent_child' | 'spouse') || 'parent_child');
+          setRelStartYear(payload.start_year ? String(payload.start_year) : '');
+          setRelStartDate(payload.start_date ? String(payload.start_date) : '');
+          setRelStartPlace(payload.start_place ? String(payload.start_place) : '');
+          setRelNotes(payload.notes ? String(payload.notes) : '');
+
+          if (payload.person_a_id) {
+            getPersonSummaryAction(String(payload.person_a_id)).then((res) => {
+              if (isMounted && res) setRelPersonA(res);
+            });
+          }
+          if (payload.person_b_id) {
+            getPersonSummaryAction(String(payload.person_b_id)).then((res) => {
+              if (isMounted && res) setRelPersonB(res);
+            });
+          }
+        } else {
+          setFirstNames(payload.first_names ? String(payload.first_names) : '');
+          setLastName(payload.last_name ? String(payload.last_name) : '');
+          if (Array.isArray(payload.name_variants)) {
+            setNameVariants(payload.name_variants.join(', '));
+          } else if (payload.name_variants) {
+            setNameVariants(String(payload.name_variants));
+          }
+          setGender((payload.gender as 'M' | 'F' | 'other' | 'unknown') || 'unknown');
+          setProfession(payload.profession ? String(payload.profession) : '');
+          setBiography(payload.biography ? String(payload.biography) : '');
+
+          setBirthYear(payload.birth_year ? String(payload.birth_year) : '');
+          setBirthDate(payload.birth_date ? String(payload.birth_date) : '');
+          setBirthDatePrecision((payload.birth_date_precision as DatePrecision) || 'unknown');
+          setBirthPlace(payload.birth_place ? String(payload.birth_place) : '');
+
+          setDeathYear(payload.death_year ? String(payload.death_year) : '');
+          setDeathDate(payload.death_date ? String(payload.death_date) : '');
+          setDeathDatePrecision((payload.death_date_precision as DatePrecision) || 'unknown');
+          setDeathPlace(payload.death_place ? String(payload.death_place) : '');
+          setLifeStatus((payload.life_status as LifeStatus) || 'deceased');
+
+          if (payload.parent_id) {
+            getPersonSummaryAction(String(payload.parent_id)).then((res) => {
+              if (isMounted && res) setParentPerson(res);
+            });
+          }
+          if (payload.spouse_id) {
+            getPersonSummaryAction(String(payload.spouse_id)).then((res) => {
+              if (isMounted && res) setSpousePerson(res);
+            });
+          }
         }
-        setGender((payload.gender as 'M' | 'F' | 'other' | 'unknown') || 'unknown');
-        setProfession(payload.profession ? String(payload.profession) : '');
-        setBiography(payload.biography ? String(payload.biography) : '');
-
-        setBirthYear(payload.birth_year ? String(payload.birth_year) : '');
-        setBirthDate(payload.birth_date ? String(payload.birth_date) : '');
-        setBirthDatePrecision((payload.birth_date_precision as DatePrecision) || 'unknown');
-        setBirthPlace(payload.birth_place ? String(payload.birth_place) : '');
-
-        setDeathYear(payload.death_year ? String(payload.death_year) : '');
-        setDeathDate(payload.death_date ? String(payload.death_date) : '');
-        setDeathDatePrecision((payload.death_date_precision as DatePrecision) || 'unknown');
-        setDeathPlace(payload.death_place ? String(payload.death_place) : '');
-        setLifeStatus((payload.life_status as LifeStatus) || 'deceased');
 
         setSourceTitle(sources.title ? String(sources.title) : '');
         setArchiveReference(sources.archive_reference ? String(sources.archive_reference) : '');
@@ -250,6 +465,70 @@ function ProposerForm() {
     e.preventDefault();
     setError(null);
 
+    const sources_info = sourceTitle.trim()
+      ? {
+          title: sourceTitle.trim(),
+          archive_reference: archiveReference.trim() || undefined,
+          url: sourceUrl.trim() || undefined,
+          description: sourceDescription.trim() || undefined,
+          uncertainty_notes: uncertaintyNotes.trim() || undefined,
+          is_approximate: birthDatePrecision === 'approximate' || deathDatePrecision === 'approximate',
+        }
+      : undefined;
+
+    // Handle ADD_RELATIONSHIP
+    if (proposalType === 'add_relationship') {
+      if (!relPersonA) {
+        setError('Veuillez sélectionner la première personne (Personne A).');
+        return;
+      }
+      if (!relPersonB) {
+        setError('Veuillez sélectionner la seconde personne (Personne B).');
+        return;
+      }
+      if (relPersonA.id === relPersonB.id) {
+        setError('Une personne ne peut pas être liée à elle-même.');
+        return;
+      }
+
+      const relPayload: Record<string, unknown> = {
+        relationship_type: relType,
+        person_a_id: relPersonA.id,
+        person_b_id: relPersonB.id,
+        start_year: relStartYear ? parseInt(relStartYear, 10) : null,
+        start_date: relStartDate || null,
+        start_place: relStartPlace.trim() || null,
+        notes: relNotes.trim() || null,
+      };
+
+      startTransition(async () => {
+        let res;
+        if (editProposalId) {
+          res = await updateProposalAction(editProposalId, {
+            proposal_type: 'add_relationship',
+            payload: relPayload,
+            sources_info,
+            user_explanation: userExplanation.trim() || undefined,
+          });
+        } else {
+          res = await submitProposalAction({
+            proposal_type: 'add_relationship',
+            payload: relPayload,
+            sources_info,
+            user_explanation: userExplanation.trim() || undefined,
+          });
+        }
+
+        if (res.success) {
+          setSuccess(true);
+        } else {
+          setError(res.error || 'Une erreur est survenue lors de l\'envoi de la proposition.');
+        }
+      });
+      return;
+    }
+
+    // Handle ADD_PERSON & UPDATE_PERSON
     const variantsArray = nameVariants
       .split(',')
       .map((v) => v.trim())
@@ -272,18 +551,9 @@ function ProposerForm() {
       visibility: 'public',
       profession: profession.trim() || null,
       biography: biography.trim() || null,
+      parent_id: parentPerson ? parentPerson.id : null,
+      spouse_id: spousePerson ? spousePerson.id : null,
     };
-
-    const sources_info = sourceTitle.trim()
-      ? {
-          title: sourceTitle.trim(),
-          archive_reference: archiveReference.trim() || undefined,
-          url: sourceUrl.trim() || undefined,
-          description: sourceDescription.trim() || undefined,
-          uncertainty_notes: uncertaintyNotes.trim() || undefined,
-          is_approximate: birthDatePrecision === 'approximate' || deathDatePrecision === 'approximate',
-        }
-      : undefined;
 
     const targetPersonId = editProposalId
       ? (editTargetPersonId || prefillTargetPersonId || selectedPersonId || null)
@@ -366,7 +636,20 @@ function ProposerForm() {
                 setBiography('');
                 setBirthYear('');
                 setDeathYear('');
+                setParentPerson(null);
+                setSpousePerson(null);
+                setRelPersonA(null);
+                setRelPersonB(null);
+                setRelStartYear('');
+                setRelStartDate('');
+                setRelStartPlace('');
+                setRelNotes('');
                 setSourceTitle('');
+                setArchiveReference('');
+                setSourceUrl('');
+                setSourceDescription('');
+                setUncertaintyNotes('');
+                setUserExplanation('');
               }}
               className="px-5 py-2.5 rounded-lg border border-heritage-300 text-heritage-800 text-sm font-medium hover:bg-heritage-100 transition-colors"
             >
@@ -413,10 +696,13 @@ function ProposerForm() {
 
       {/* Type Selector Tabs (hidden if editing existing proposal) */}
       {!editProposalId && (
-        <div className="flex border-b border-heritage-200 gap-2">
+        <div className="flex flex-wrap border-b border-heritage-200 gap-2">
           <button
             type="button"
-            onClick={() => setProposalType('add_person')}
+            onClick={() => {
+              setProposalType('add_person');
+              setError(null);
+            }}
             className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
               proposalType === 'add_person'
                 ? 'border-heritage-800 text-heritage-950'
@@ -429,7 +715,26 @@ function ProposerForm() {
 
           <button
             type="button"
-            onClick={() => setProposalType('update_person')}
+            onClick={() => {
+              setProposalType('add_relationship');
+              setError(null);
+            }}
+            className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
+              proposalType === 'add_relationship'
+                ? 'border-heritage-800 text-heritage-950'
+                : 'border-transparent text-heritage-500 hover:text-heritage-800'
+            }`}
+          >
+            <HeartHandshake className="w-4 h-4" />
+            <span>Relier 2 personnes</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setProposalType('update_person');
+              setError(null);
+            }}
             className={`pb-3 px-3 text-sm font-semibold border-b-2 flex items-center space-x-2 transition-colors ${
               proposalType === 'update_person'
                 ? 'border-heritage-800 text-heritage-950'
@@ -573,230 +878,431 @@ function ProposerForm() {
 
       {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Section 1: Identité */}
-        <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4">
-          <h2 className="font-serif text-lg font-bold text-heritage-900 pb-2 border-b border-heritage-100">
-            1. Identité de la personne
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
-                Prénom(s) *
-              </label>
-              <input
-                type="text"
-                required
-                value={firstNames}
-                onChange={(e) => setFirstNames(e.target.value)}
-                placeholder="Ex: Pierre François"
-                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
-                Nom de famille *
-              </label>
-              <input
-                type="text"
-                required
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Ex: DUPONT"
-                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
-                Variantes orthographiques
-              </label>
-              <input
-                type="text"
-                value={nameVariants}
-                onChange={(e) => setNameVariants(e.target.value)}
-                placeholder="Ex: Dupond, De Pont (séparées par virgules)"
-                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
-                Genre
-              </label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value as any)}
-                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
-              >
-                <option value="unknown">Non précisé</option>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
-                Métier / Profession
-              </label>
-              <input
-                type="text"
-                value={profession}
-                onChange={(e) => setProfession(e.target.value)}
-                placeholder="Ex: Tisserand, Cultivateur, Maçon..."
-                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
-                Notice biographique / Notes complémentaires
-              </label>
-              <textarea
-                rows={3}
-                value={biography}
-                onChange={(e) => setBiography(e.target.value)}
-                placeholder="Informations sur la vie de la personne, parcours, contexte historique ou familial..."
-                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 2: Naissance & Décès */}
-        <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4">
-          <h2 className="font-serif text-lg font-bold text-heritage-900 pb-2 border-b border-heritage-100">
-            2. Événements et Dates
-          </h2>
-
-          <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-              Naissance
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs text-heritage-700 mb-1">Année connue</label>
-                <input
-                  type="number"
-                  value={birthYear}
-                  onChange={(e) => setBirthYear(e.target.value)}
-                  placeholder="Ex: 1842"
-                  min="800"
-                  max="2100"
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
-                />
+        {/* ========================================================= */}
+        {/* VIEW A: ADD_RELATIONSHIP (RELATION ENTRE 2 PERSONNES)      */}
+        {/* ========================================================= */}
+        {proposalType === 'add_relationship' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-6">
+              <div className="pb-3 border-b border-heritage-100">
+                <h2 className="font-serif text-lg font-bold text-heritage-900">
+                  1. Définir le lien familial entre deux personnes
+                </h2>
+                <p className="text-xs text-heritage-600 font-serif mt-1">
+                  Sélectionnez les deux fiches individuelles existantes dans l’arbre, puis indiquez leur relation de parenté ou de mariage.
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs text-heritage-700 mb-1">Date exacte (si connue)</label>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => {
-                    setBirthDate(e.target.value);
-                    if (e.target.value) setBirthDatePrecision('exact');
-                  }}
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
-                />
+              {/* Person A picker */}
+              <PersonPicker
+                label="Personne A (Première personne) *"
+                description="Dans le cas d'une filiation, la Personne A est le parent (père ou mère)."
+                selectedPerson={relPersonA}
+                onSelect={(p) => setRelPersonA(p)}
+                onRemove={() => setRelPersonA(null)}
+                placeholder="Rechercher la personne A par prénom ou nom..."
+              />
+
+              {/* Relationship Type Selector */}
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800">
+                  Nature de la relation *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRelType('parent_child')}
+                    className={`p-4 rounded-xl border text-left transition-colors flex items-start space-x-3 ${
+                      relType === 'parent_child'
+                        ? 'border-heritage-800 bg-heritage-50/80 ring-2 ring-heritage-800/20'
+                        : 'border-heritage-200 hover:border-heritage-400 bg-white'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-serif font-bold text-sm text-heritage-950">
+                        Filiation (Parent ➔ Enfant)
+                      </p>
+                      <p className="text-xs text-heritage-600 mt-0.5">
+                        La Personne A est le père ou la mère de la Personne B.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRelType('spouse')}
+                    className={`p-4 rounded-xl border text-left transition-colors flex items-start space-x-3 ${
+                      relType === 'spouse'
+                        ? 'border-heritage-800 bg-heritage-50/80 ring-2 ring-heritage-800/20'
+                        : 'border-heritage-200 hover:border-heritage-400 bg-white'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-heritage-200 text-heritage-800 flex items-center justify-center shrink-0">
+                      <HeartHandshake className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-serif font-bold text-sm text-heritage-950">
+                        Conjoints / Mariage
+                      </p>
+                      <p className="text-xs text-heritage-600 mt-0.5">
+                        La Personne A et la Personne B sont mariées ou conjointes.
+                      </p>
+                    </div>
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs text-heritage-700 mb-1">Précision</label>
-                <select
-                  value={birthDatePrecision}
-                  onChange={(e) => setBirthDatePrecision(e.target.value as DatePrecision)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
-                >
-                  <option value="unknown">Inconnue</option>
-                  <option value="exact">Date exacte documentée</option>
-                  <option value="year_only">Année seule</option>
-                  <option value="approximate">Approximative (vers)</option>
-                  <option value="before">Avant</option>
-                  <option value="after">Après</option>
-                </select>
-              </div>
+              {/* Person B picker */}
+              <PersonPicker
+                label="Personne B (Seconde personne) *"
+                description={
+                  relType === 'parent_child'
+                    ? "La Personne B est l'enfant de la Personne A."
+                    : "La Personne B est l'époux ou l'épouse de la Personne A."
+                }
+                selectedPerson={relPersonB}
+                onSelect={(p) => setRelPersonB(p)}
+                onRemove={() => setRelPersonB(null)}
+                excludePersonId={relPersonA?.id}
+                placeholder="Rechercher la personne B par prénom ou nom..."
+              />
 
-              <div className="sm:col-span-3">
-                <label className="block text-xs text-heritage-700 mb-1">Lieu de naissance</label>
-                <input
-                  type="text"
-                  value={birthPlace}
-                  onChange={(e) => setBirthPlace(e.target.value)}
-                  placeholder="Ex: Habses, paroisse Saint-Pierre"
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+              {/* Optional details for spouse (marriage dates) */}
+              {relType === 'spouse' && (
+                <div className="pt-4 border-t border-heritage-100 space-y-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
+                    Informations sur le mariage (optionnel)
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs text-heritage-700 mb-1">Année de mariage</label>
+                      <input
+                        type="number"
+                        value={relStartYear}
+                        onChange={(e) => setRelStartYear(e.target.value)}
+                        placeholder="Ex: 1905"
+                        min="800"
+                        max="2100"
+                        className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-heritage-700 mb-1">Date exacte</label>
+                      <input
+                        type="date"
+                        value={relStartDate}
+                        onChange={(e) => setRelStartDate(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-heritage-700 mb-1">Lieu de célébration</label>
+                      <input
+                        type="text"
+                        value={relStartPlace}
+                        onChange={(e) => setRelStartPlace(e.target.value)}
+                        placeholder="Ex: Habses"
+                        className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Relationship notes */}
+              <div className="pt-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                  Précisions sur ce lien (optionnel)
+                </label>
+                <textarea
+                  rows={2}
+                  value={relNotes}
+                  onChange={(e) => setRelNotes(e.target.value)}
+                  placeholder="Ex: Mariage religieux documenté dans le registre de la paroisse..."
+                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
                 />
               </div>
             </div>
           </div>
+        )}
 
-          <div className="pt-4 border-t border-heritage-100 space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
-              Décès & Statut vital
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs text-heritage-700 mb-1">Statut vital</label>
-                <select
-                  value={lifeStatus}
-                  onChange={(e) => setLifeStatus(e.target.value as LifeStatus)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
-                >
-                  <option value="deceased">Décédé(e)</option>
-                  <option value="living">Vivant(e)</option>
-                  <option value="unknown">Inconnu</option>
-                </select>
-              </div>
+        {/* ========================================================= */}
+        {/* VIEW B: ADD_PERSON & UPDATE_PERSON (FICHE INDIVIDUELLE)    */}
+        {/* ========================================================= */}
+        {proposalType !== 'add_relationship' && (
+          <>
+            {/* Section 1: Identité */}
+            <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4">
+              <h2 className="font-serif text-lg font-bold text-heritage-900 pb-2 border-b border-heritage-100">
+                1. Identité de la personne
+              </h2>
 
-              <div>
-                <label className="block text-xs text-heritage-700 mb-1">Année de décès</label>
-                <input
-                  type="number"
-                  disabled={lifeStatus === 'living'}
-                  value={deathYear}
-                  onChange={(e) => setDeathYear(e.target.value)}
-                  placeholder="Ex: 1912"
-                  min="800"
-                  max="2100"
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm disabled:bg-heritage-100"
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                    Prénom(s) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={firstNames}
+                    onChange={(e) => setFirstNames(e.target.value)}
+                    placeholder="Ex: Pierre François"
+                    className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs text-heritage-700 mb-1">Précision de décès</label>
-                <select
-                  disabled={lifeStatus === 'living'}
-                  value={deathDatePrecision}
-                  onChange={(e) => setDeathDatePrecision(e.target.value as DatePrecision)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm disabled:bg-heritage-100"
-                >
-                  <option value="unknown">Inconnue</option>
-                  <option value="exact">Date exacte documentée</option>
-                  <option value="year_only">Année seule</option>
-                  <option value="approximate">Approximative (vers)</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                    Nom de famille *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Ex: DUPONT"
+                    className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+                  />
+                </div>
 
-              <div className="sm:col-span-3">
-                <label className="block text-xs text-heritage-700 mb-1">Lieu de décès</label>
-                <input
-                  type="text"
-                  disabled={lifeStatus === 'living'}
-                  value={deathPlace}
-                  onChange={(e) => setDeathPlace(e.target.value)}
-                  placeholder="Ex: Habses"
-                  className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm disabled:bg-heritage-100"
-                />
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                    Variantes orthographiques
+                  </label>
+                  <input
+                    type="text"
+                    value={nameVariants}
+                    onChange={(e) => setNameVariants(e.target.value)}
+                    placeholder="Ex: Dupond, De Pont (séparées par virgules)"
+                    className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                    Genre
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as any)}
+                    className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+                  >
+                    <option value="unknown">Non précisé</option>
+                    <option value="M">Masculin</option>
+                    <option value="F">Féminin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                    Métier / Profession
+                  </label>
+                  <input
+                    type="text"
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    placeholder="Ex: Tisserand, Cultivateur, Maçon..."
+                    className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-heritage-800 mb-1">
+                    Notice biographique / Notes complémentaires
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={biography}
+                    onChange={(e) => setBiography(e.target.value)}
+                    placeholder="Informations sur la vie de la personne, parcours, contexte historique ou familial..."
+                    className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm focus:ring-2 focus:ring-heritage-600"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Section 3: Sources et Justificatifs */}
+            {/* Section 2: Naissance & Décès */}
+            <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4">
+              <h2 className="font-serif text-lg font-bold text-heritage-900 pb-2 border-b border-heritage-100">
+                2. Événements et Dates
+              </h2>
+
+              <div className="space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
+                  Naissance
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs text-heritage-700 mb-1">Année connue</label>
+                    <input
+                      type="number"
+                      value={birthYear}
+                      onChange={(e) => setBirthYear(e.target.value)}
+                      placeholder="Ex: 1842"
+                      min="800"
+                      max="2100"
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-heritage-700 mb-1">Date exacte (si connue)</label>
+                    <input
+                      type="date"
+                      value={birthDate}
+                      onChange={(e) => {
+                        setBirthDate(e.target.value);
+                        if (e.target.value) setBirthDatePrecision('exact');
+                      }}
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-heritage-700 mb-1">Précision</label>
+                    <select
+                      value={birthDatePrecision}
+                      onChange={(e) => setBirthDatePrecision(e.target.value as DatePrecision)}
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                    >
+                      <option value="unknown">Inconnue</option>
+                      <option value="exact">Date exacte documentée</option>
+                      <option value="year_only">Année seule</option>
+                      <option value="approximate">Approximative (vers)</option>
+                      <option value="before">Avant</option>
+                      <option value="after">Après</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-xs text-heritage-700 mb-1">Lieu de naissance</label>
+                    <input
+                      type="text"
+                      value={birthPlace}
+                      onChange={(e) => setBirthPlace(e.target.value)}
+                      placeholder="Ex: Habses, paroisse Saint-Pierre"
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-heritage-100 space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
+                  Décès & Statut vital
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs text-heritage-700 mb-1">Statut vital</label>
+                    <select
+                      value={lifeStatus}
+                      onChange={(e) => setLifeStatus(e.target.value as LifeStatus)}
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+                    >
+                      <option value="deceased">Décédé(e)</option>
+                      <option value="living">Vivant(e)</option>
+                      <option value="unknown">Inconnu</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-heritage-700 mb-1">Année de décès</label>
+                    <input
+                      type="number"
+                      disabled={lifeStatus === 'living'}
+                      value={deathYear}
+                      onChange={(e) => setDeathYear(e.target.value)}
+                      placeholder="Ex: 1912"
+                      min="800"
+                      max="2100"
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm disabled:bg-heritage-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-heritage-700 mb-1">Précision de décès</label>
+                    <select
+                      disabled={lifeStatus === 'living'}
+                      value={deathDatePrecision}
+                      onChange={(e) => setDeathDatePrecision(e.target.value as DatePrecision)}
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm disabled:bg-heritage-100"
+                    >
+                      <option value="unknown">Inconnue</option>
+                      <option value="exact">Date exacte documentée</option>
+                      <option value="year_only">Année seule</option>
+                      <option value="approximate">Approximative (vers)</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-xs text-heritage-700 mb-1">Lieu de décès</label>
+                    <input
+                      type="text"
+                      disabled={lifeStatus === 'living'}
+                      value={deathPlace}
+                      onChange={(e) => setDeathPlace(e.target.value)}
+                      placeholder="Ex: Habses"
+                      className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm disabled:bg-heritage-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Liens familiaux optionnels à la création (uniquement add_person) */}
+            {proposalType === 'add_person' && (
+              <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-5">
+                <div className="flex items-center justify-between pb-2 border-b border-heritage-100">
+                  <div>
+                    <h2 className="font-serif text-lg font-bold text-heritage-900">
+                      3. Liens familiaux dans l&apos;arbre
+                    </h2>
+                    <p className="text-xs text-heritage-600 font-serif mt-0.5">
+                      Rattachez directement cette personne à sa famille déjà présente dans l&apos;arbre généalogique.
+                    </p>
+                  </div>
+                  <span className="text-xs text-heritage-500 font-medium">Optionnel</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Parent picker */}
+                  <PersonPicker
+                    label="Père ou Mère"
+                    description="Sélectionnez un parent existant. Le lien de filiation sera créé automatiquement à la validation."
+                    selectedPerson={parentPerson}
+                    onSelect={(p) => setParentPerson(p)}
+                    onRemove={() => setParentPerson(null)}
+                    placeholder="Rechercher le père ou la mère..."
+                  />
+
+                  {/* Spouse picker */}
+                  <PersonPicker
+                    label="Époux ou Épouse"
+                    description="Sélectionnez son conjoint. Le lien de mariage sera créé automatiquement à la validation."
+                    selectedPerson={spousePerson}
+                    onSelect={(p) => setSpousePerson(p)}
+                    onRemove={() => setSpousePerson(null)}
+                    placeholder="Rechercher le conjoint..."
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ========================================================= */}
+        {/* SECTION COMMUNE: SOURCES & JUSTIFICATIFS                  */}
+        {/* ========================================================= */}
         <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-heritage-100">
             <h2 className="font-serif text-lg font-bold text-heritage-900">
-              3. Justificatifs & Sources d&apos;archives
+              {proposalType === 'add_relationship' ? '2. Justificatifs & Sources d’archives' : '4. Justificatifs & Sources d’archives'}
             </h2>
             <span className="text-xs text-heritage-500">Recommandé</span>
           </div>
@@ -810,7 +1316,7 @@ function ProposerForm() {
                 type="text"
                 value={sourceTitle}
                 onChange={(e) => setSourceTitle(e.target.value)}
-                placeholder="Ex: Registre paroissial des baptêmes (1840-1845)"
+                placeholder="Ex: Registre paroissial des baptêmes (1840-1845), Acte de mariage..."
                 className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
               />
             </div>
@@ -848,6 +1354,19 @@ function ProposerForm() {
                 value={uncertaintyNotes}
                 onChange={(e) => setUncertaintyNotes(e.target.value)}
                 placeholder="Précisez si certains liens sont hypothétiques ou déduits d'un recensement..."
+                className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-heritage-700 mb-1">
+                Remarque ou message pour l’administrateur (optionnel)
+              </label>
+              <input
+                type="text"
+                value={userExplanation}
+                onChange={(e) => setUserExplanation(e.target.value)}
+                placeholder="Ex: Branche retrouvée grâce aux souvenirs de famille..."
                 className="w-full px-3.5 py-2 rounded-lg border border-heritage-300 text-sm"
               />
             </div>

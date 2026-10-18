@@ -49,13 +49,27 @@ export default async function AdminModerationPage(props: PageProps) {
 
   const profilesMap = new Map((profiles || []).map((p) => [p.id, p.display_name]));
 
-  // Batch fetch target persons for update_person
-  const targetPersonIds = proposalsList
-    .map((p) => p.target_person_id)
+  // Batch fetch all referenced persons: target_person_id, person_a_id, person_b_id, parent_id, spouse_id
+  const referencedPersonIds = proposalsList
+    .flatMap((p) => {
+      const ids: (string | null | undefined)[] = [p.target_person_id];
+      const payload = (p.payload || {}) as Record<string, unknown>;
+      if (p.proposal_type === 'add_relationship') {
+        if (payload.person_a_id) ids.push(String(payload.person_a_id));
+        if (payload.person_b_id) ids.push(String(payload.person_b_id));
+      }
+      if (p.proposal_type === 'add_person') {
+        if (payload.parent_id) ids.push(String(payload.parent_id));
+        if (payload.spouse_id) ids.push(String(payload.spouse_id));
+      }
+      return ids;
+    })
     .filter((id): id is string => Boolean(id));
 
-  const { data: targetPersons } = targetPersonIds.length > 0
-    ? await supabase.from('persons').select('*').in('id', targetPersonIds)
+  const uniquePersonIds = Array.from(new Set(referencedPersonIds));
+
+  const { data: targetPersons } = uniquePersonIds.length > 0
+    ? await supabase.from('persons').select('*').in('id', uniquePersonIds)
     : { data: [] };
 
   const targetPersonsMap = new Map((targetPersons || []).map((p) => [p.id, p]));
@@ -94,6 +108,8 @@ export default async function AdminModerationPage(props: PageProps) {
         }
       }
 
+      const pPayload = (p.payload || {}) as Record<string, unknown>;
+
       return {
         id: p.id,
         proposal_type: p.proposal_type as ProposalType,
@@ -101,7 +117,11 @@ export default async function AdminModerationPage(props: PageProps) {
         submitter_name: profilesMap.get(p.submitted_by) || 'Contributeur',
         target_person_id: p.target_person_id,
         target_person: p.target_person_id ? targetPersonsMap.get(p.target_person_id) : null,
-        payload: p.payload as Record<string, unknown>,
+        person_a: pPayload.person_a_id ? targetPersonsMap.get(String(pPayload.person_a_id)) : null,
+        person_b: pPayload.person_b_id ? targetPersonsMap.get(String(pPayload.person_b_id)) : null,
+        parent_person: pPayload.parent_id ? targetPersonsMap.get(String(pPayload.parent_id)) : null,
+        spouse_person: pPayload.spouse_id ? targetPersonsMap.get(String(pPayload.spouse_id)) : null,
+        payload: pPayload,
         sources_info: p.sources_info as Record<string, unknown> | null,
         status: p.status,
         review_comment: p.review_comment || null,

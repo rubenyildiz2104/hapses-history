@@ -1,6 +1,7 @@
-# Mémoire et Généalogie d'un Village (Hapses)
+# Habses — Histoire & Familles (Hapses History)
 
-Plateforme web patrimoniale et collaborative consacrée à la mémoire d’un village, à ses familles, à ses habitants passés et à son histoire.
+> **History of Habses village (Hapisnas / Mercimekli)** — An ancient Aramean village, its families, genealogy, and collective heritage.
+> Plateforme web patrimoniale et collaborative consacrée à la mémoire du village, à ses familles, à ses habitants passés et à son histoire.
 
 Conforme au **Cahier des charges fonctionnel et technique v1.0**.
 
@@ -29,6 +30,7 @@ Conforme au **Cahier des charges fonctionnel et technique v1.0**.
 │   └── TEST_PLAN.md                       # Plan de tests, matrice de couverture et procédures
 │
 ├── supabase/                              # Migrations PostgreSQL et données de démonstration
+│   ├── full_setup.sql                     # Script de déploiement tout-en-un pour Supabase SQL Editor
 │   └── migrations/
 │       ├── 20261018000001_init_schema.sql                # Schéma initial, contraintes et triggers anti-cycles
 │       ├── 20261018000002_rls_policies.sql               # Politiques RLS et règles de confidentialité strictes
@@ -57,6 +59,7 @@ Conforme au **Cahier des charges fonctionnel et technique v1.0**.
 │   │       └── article.ts                 # Schémas Zod pour les articles historiques
 │   │
 ├── tests/                                 # Tests automatisés
+│   ├── genealogy.test.ts                  # Tests de composition de l'entourage familial
 │   ├── privacy.test.ts                    # Tests de non-divulgation des vivants et sources
 │   ├── dates.test.ts                      # Tests des dates partielles (ex: 1842)
 │   └── duplicates.test.ts                 # Tests de calcul d'indice de doublons
@@ -82,12 +85,7 @@ cp .env.example .env.local
 ```
 
 ### 2. Application des Migrations SQL
-Sous Supabase, exécutez séquentiellement les scripts situés dans `supabase/migrations/` depuis le SQL Editor ou via la CLI Supabase :
-1. `20261018000001_init_schema.sql`
-2. `20261018000002_rls_policies.sql`
-3. `20261018000003_proposal_moderation_rpc.sql`
-4. `20261018000004_duplicate_detection_search.sql`
-5. *(Optionnel)* `20261018000005_seed_demo_data.sql` (fixtures de test clairement identifiées [DÉMO])
+Sous Supabase, exécutez le script tout-en-un [`supabase/full_setup.sql`](supabase/full_setup.sql) dans le **SQL Editor** pour créer les 10 tables, les règles RLS et les données de test.
 
 ### 3. Exécution des Tests
 ```bash

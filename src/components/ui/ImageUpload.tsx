@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { UploadCloud, X, Loader2, Image as ImageIcon, ExternalLink, AlertCircle } from 'lucide-react';
 
 interface ImageUploadProps {
@@ -44,32 +43,22 @@ export function ImageUpload({
     setIsUploading(true);
 
     try {
-      const supabase = createClient();
-      
-      // Clean file extension & build unique path
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const cleanFileName = file.name
-        .replace(/[^a-zA-Z0-9_-]/g, '_')
-        .substring(0, 30);
-      const filePath = `${folder}/${Date.now()}-${cleanFileName}.${ext}`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', folder);
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('archives')
-        .upload(filePath, file, {
-          cacheControl: '31536000',
-          upsert: true,
-        });
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      if (uploadError) {
-        throw uploadError;
+      const json = await res.json();
+
+      if (!res.ok || !json.url) {
+        throw new Error(json.error || 'Erreur lors du téléversement du fichier.');
       }
 
-      // Get permanent public URL
-      const { data: pubData } = supabase.storage
-        .from('archives')
-        .getPublicUrl(data.path);
-
-      onChange(pubData.publicUrl);
+      onChange(json.url);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur lors du téléversement.';
       setError(msg);

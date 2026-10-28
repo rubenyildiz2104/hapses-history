@@ -65,19 +65,45 @@ export default async function AProposPage() {
           </div>
         </section>
 
-        <section className="p-6 rounded-2xl bg-heritage-100/70 border border-heritage-200 space-y-3">
-          <h2 className="font-serif text-lg font-bold text-heritage-950">
+        <section className="p-6 sm:p-8 rounded-2xl bg-heritage-100/70 border border-heritage-200 space-y-4">
+          <h2 className="font-serif text-lg sm:text-xl font-bold text-heritage-950">
             {t('about.participateTitle')}
           </h2>
-          <p className="text-sm text-heritage-700">
+          <p className="text-sm text-heritage-700 leading-relaxed">
             {t('about.participateDesc')}
           </p>
-          <div className="pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link
-              href="/connexion"
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-heritage-800 text-heritage-50 text-xs font-semibold hover:bg-heritage-900 transition-colors"
+              href="/proposer"
+              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-lg bg-heritage-800 text-heritage-50 text-xs font-semibold hover:bg-heritage-900 transition-colors shadow-xs"
             >
               <span>{t('about.participateButton')}</span>
+            </Link>
+            <Link
+              href="/contact"
+              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-lg border border-heritage-300 text-heritage-800 text-xs font-semibold hover:bg-heritage-100 transition-colors"
+            >
+              <span>{t('contact.title')}</span>
+            </Link>
+          </div>
+        </section>
+
+        <section className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-3 shadow-xs">
+          <span className="text-xs font-semibold uppercase tracking-wider text-heritage-600">
+            {t('contact.badge')}
+          </span>
+          <h2 className="font-serif text-lg font-bold text-heritage-950">
+            {t('contact.directContactTitle')}
+          </h2>
+          <p className="text-xs sm:text-sm text-heritage-700 leading-relaxed font-serif">
+            {t('contact.subtitle')}
+          </p>
+          <div className="pt-1">
+            <Link
+              href="/contact"
+              className="inline-flex items-center space-x-2 text-xs font-semibold text-heritage-900 hover:text-heritage-950 underline"
+            >
+              <span>Accéder aux coordonnées directes et au formulaire de contact →</span>
             </Link>
           </div>
         </section>

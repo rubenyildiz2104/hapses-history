@@ -3,11 +3,73 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { sendProposalStatusEmail } from '@/lib/services/email';
 
 export interface ReviewProposalResult {
   success: boolean;
   error?: string;
   data?: Record<string, unknown>;
+}
+
+async function notifyProposalAuthor(
+  adminClient: ReturnType<typeof createAdminClient>,
+  proposalId: string,
+  decision: 'accept' | 'reject' | 'needs_information',
+  comment?: string | null
+) {
+  try {
+    const { data: prop } = await adminClient
+      .from('proposals')
+      .select('proposal_type, submitted_by, payload, target_person_id')
+      .eq('id', proposalId)
+      .single();
+
+    if (!prop || !prop.submitted_by) return;
+
+    // Fetch author's email
+    const { data: authorData } = await adminClient.auth.admin.getUserById(prop.submitted_by);
+    const authorEmail = authorData?.user?.email;
+    if (!authorEmail) return;
+
+    // Fetch author's display name
+    const { data: authorProfile } = await adminClient
+      .from('profiles')
+      .select('display_name')
+      .eq('id', prop.submitted_by)
+      .single();
+
+    const authorName =
+      authorProfile?.display_name ||
+      authorData?.user?.user_metadata?.display_name ||
+      authorEmail.split('@')[0] ||
+      'Contributeur';
+
+    // Target person name if available
+    let targetPersonName: string | null = null;
+    const payload = (prop.payload || {}) as Record<string, unknown>;
+    if (payload.first_names || payload.last_name) {
+      targetPersonName = `${payload.first_names || ''} ${payload.last_name || ''}`.trim();
+    } else if (prop.target_person_id) {
+      const { data: tp } = await adminClient
+        .from('persons')
+        .select('first_names, last_name')
+        .eq('id', prop.target_person_id)
+        .single();
+      if (tp) targetPersonName = `${tp.first_names} ${tp.last_name}`.trim();
+    }
+
+    await sendProposalStatusEmail({
+      recipientEmail: authorEmail,
+      recipientName: authorName,
+      proposalId,
+      proposalType: prop.proposal_type,
+      decision,
+      reviewComment: comment,
+      targetPersonName,
+    });
+  } catch (emailErr) {
+    console.error('Failed to notify proposal author by email:', emailErr);
+  }
 }
 
 export async function reviewProposalAction(
@@ -201,6 +263,8 @@ export async function reviewProposalAction(
     revalidatePath('/admin/audit');
     revalidatePath('/compte/propositions');
     revalidatePath('/genealogie');
+
+    await notifyProposalAuthor(adminClient, proposalId, decision, comment);
 
     return { success: true };
   }
@@ -399,6 +463,8 @@ export async function reviewProposalAction(
   revalidatePath('/admin/audit');
   revalidatePath('/compte/propositions');
   revalidatePath('/genealogie');
+
+  await notifyProposalAuthor(adminClient, proposalId, decision, comment);
 
   return {
     success: true,

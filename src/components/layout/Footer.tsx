@@ -54,6 +54,11 @@ export function Footer() {
                   {t('nav.export')}
                 </Link>
               </li>
+              <li>
+                <Link href="/contact" className="hover:text-heritage-950 transition-colors">
+                  {t('footer.contact')}
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -66,6 +71,11 @@ export function Footer() {
               <li>
                 <Link href="/a-propos" className="hover:text-heritage-950 transition-colors">
                   {t('nav.about')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-heritage-950 transition-colors">
+                  {t('footer.contact')}
                 </Link>
               </li>
               <li>

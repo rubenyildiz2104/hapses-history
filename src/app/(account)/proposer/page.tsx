@@ -1697,7 +1697,11 @@ function ProposerForm() {
         <div className="p-6 rounded-2xl bg-white border border-heritage-200 space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-heritage-100">
             <h2 className="font-serif text-lg font-bold text-heritage-900">
-              {proposalType === 'add_relationship' ? '2. Justificatifs & Sources d’archives' : '4. Justificatifs & Sources d’archives'}
+              {proposalType === 'add_relationship'
+                ? '2. Justificatifs & Sources d’archives'
+                : proposalType === 'update_person'
+                ? '3. Justificatifs & Sources d’archives'
+                : '4. Justificatifs & Sources d’archives'}
             </h2>
             <span className="text-xs text-heritage-500">Recommandé</span>
           </div>

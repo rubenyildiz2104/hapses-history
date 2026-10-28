@@ -43,6 +43,8 @@ export interface Dictionary {
     signOut: string;
     signUp: string;
     moderation: string;
+    contact: string;
+    profile: string;
   };
   home: {
     heroBadge: string;
@@ -323,5 +325,37 @@ export interface Dictionary {
     terms: string;
     rights: string;
     openData: string;
+    contact: string;
+  };
+  contact: {
+    badge: string;
+    title: string;
+    subtitle: string;
+    directContactTitle: string;
+    directContactDesc: string;
+    adminName: string;
+    adminRole: string;
+    adminEmail: string;
+    sendEmailButton: string;
+    formTitle: string;
+    formDesc: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    categoryLabel: string;
+    catHelpGenealogy: string;
+    catAppImprovement: string;
+    catTechnicalHelp: string;
+    catOther: string;
+    subjectLabel: string;
+    subjectPlaceholder: string;
+    messageLabel: string;
+    messagePlaceholder: string;
+    submitButton: string;
+    submitting: string;
+    successTitle: string;
+    successDesc: string;
+    sendAnother: string;
   };
 }
